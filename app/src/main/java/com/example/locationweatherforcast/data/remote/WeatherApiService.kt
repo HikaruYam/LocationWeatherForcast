@@ -23,6 +23,6 @@ interface WeatherApiService {
         @Query("longitude") longitude: Double,
         @Query("daily") daily: String = "weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum",
         @Query("timezone") timezone: String = "auto",
-        @Query("forecast_days") forecastDays: Int = 1
+        @Query("forecast_days") forecastDays: Int = 2
     ): WeatherResponse
 }
