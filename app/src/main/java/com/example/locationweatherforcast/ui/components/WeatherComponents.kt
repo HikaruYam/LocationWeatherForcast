@@ -117,7 +117,7 @@ fun WeatherCard(
             
             // Last updated
             Text(
-                text = "最終更新: ${weatherData.lastUpdated.replace("T", " ").substring(0, 16)}",
+                text = "最終更新: ${weatherData.lastUpdated}",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.Gray,
                 textAlign = TextAlign.Center

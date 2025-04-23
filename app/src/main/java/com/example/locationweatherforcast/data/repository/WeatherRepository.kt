@@ -5,7 +5,7 @@ import com.example.locationweatherforcast.data.model.LocationData
 import com.example.locationweatherforcast.data.model.WeatherData
 import com.example.locationweatherforcast.data.remote.NetworkModule
 import com.example.locationweatherforcast.data.remote.WeatherApiService
-import java.time.LocalDateTime
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 /**
@@ -40,7 +40,7 @@ class WeatherRepository(
             temperatureMin = response.daily.temperature_2m_min[tomorrowIndex],
             precipitation = response.daily.precipitation_sum[tomorrowIndex],
             location = location,
-            lastUpdated = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            lastUpdated = ZonedDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
         )
     }
     
