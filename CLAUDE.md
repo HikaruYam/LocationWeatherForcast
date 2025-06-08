@@ -9,82 +9,82 @@ app_requirement.mdにはこのアプリの要件定義書になっています�
 作業は細かくコミットしてください。
 実装が終わったら`claude-code`向けのRPを作成してください。
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+このファイルは、Claude Code (claude.ai/code) がこのリポジトリでコードを扱う際のガイダンスを提供します。
 
-## Build and Development Commands
+## ビルドと開発コマンド
 
 ```bash
-# Build the project
+# プロジェクトをビルド
 ./gradlew build
 
-# Run debug build on connected device/emulator
+# 接続されたデバイス/エミュレータでデバッグビルドを実行
 ./gradlew installDebug
 
-# Run unit tests
+# ユニットテストを実行
 ./gradlew test
 
-# Run instrumented tests (requires device/emulator)
+# インストゥルメンテーションテストを実行（デバイス/エミュレータが必要）
 ./gradlew connectedAndroidTest
 
-# Clean build artifacts
+# ビルド成果物をクリーンアップ
 ./gradlew clean
 
-# Generate APK
+# APKを生成
 ./gradlew assembleDebug
 
-# Lint code
+# コードをLint
 ./gradlew lint
 ```
 
-## Architecture Overview
+## アーキテクチャ概要
 
-This is an Android weather forecast application built with Kotlin and Jetpack Compose that displays tomorrow's weather based on the user's current location.
+これは、Kotlin と Jetpack Compose で構築された Android 天気予報アプリケーションで、ユーザーの現在地に基づいて明日の天気を表示します。
 
-### Key Architecture Components
+### 主要なアーキテクチャコンポーネント
 
-**MVVM Pattern with Repository:**
-- `WeatherViewModel`: Manages UI state and business logic
-- `WeatherRepository`: Coordinates between location service and weather API
-- `LocationService`: Handles GPS location requests using FusedLocationProviderClient
-- `WeatherApiService`: Retrofit interface for Open-Meteo weather API
+**Repository パターンを使用した MVVM:**
+- `WeatherViewModel`: UI状態とビジネスロジックを管理
+- `WeatherRepository`: ロケーションサービスと天気APIの間を調整
+- `LocationService`: FusedLocationProviderClientを使用してGPSロケーションリクエストを処理
+- `WeatherApiService`: Open-Meteo天気API用のRetrofitインターフェース
 
-**Data Flow:**
-1. User grants location permission → `LocationService` gets GPS coordinates
-2. `WeatherRepository` fetches weather data from Open-Meteo API using coordinates
-3. API response is mapped to `WeatherData` model (tomorrow's forecast only)
-4. `WeatherViewModel` exposes `WeatherUiState` to Compose UI
+**データフロー:**
+1. ユーザーが位置情報許可を付与 → `LocationService`がGPS座標を取得
+2. `WeatherRepository`が座標を使用してOpen-Meteo APIから天気データを取得
+3. APIレスポンスが`WeatherData`モデルにマッピング（明日の予報のみ）
+4. `WeatherViewModel`が`WeatherUiState`をCompose UIに公開
 
-**Key Data Models:**
-- `WeatherData`: Core weather information with Japanese weather descriptions
-- `LocationData`: GPS coordinates
-- `WeatherResponse/DailyWeather`: API response models for Open-Meteo
+**主要なデータモデル:**
+- `WeatherData`: 日本語の天気説明を含むコア天気情報
+- `LocationData`: GPS座標
+- `WeatherResponse/DailyWeather`: Open-Meteo用のAPIレスポンスモデル
 
-**UI Components:**
-- `WeatherScreen`: Main screen with permission handling and state management
-- `WeatherCard`, `LoadingComponent`, `ErrorComponent`: Reusable UI components
-- Uses Material3 design system
+**UIコンポーネント:**
+- `WeatherScreen`: 許可処理と状態管理を含むメイン画面
+- `WeatherCard`, `LoadingComponent`, `ErrorComponent`: 再利用可能なUIコンポーネント
+- Material3デザインシステムを使用
 
-### Technology Stack
+### 技術スタック
 - **UI**: Jetpack Compose with Material3
-- **Network**: Retrofit + OkHttp with kotlinx.serialization
-- **Location**: Google Play Services FusedLocationProviderClient
-- **Architecture**: MVVM with Repository pattern
-- **Async**: Kotlin Coroutines with StateFlow
+- **ネットワーク**: Retrofit + OkHttp with kotlinx.serialization
+- **位置情報**: Google Play Services FusedLocationProviderClient
+- **アーキテクチャ**: Repository パターンを使用した MVVM
+- **非同期処理**: Kotlin Coroutines with StateFlow
 
-### API Integration
-Uses Open-Meteo (api.open-meteo.com) free weather API - no API key required. Fetches 2-day forecast but only displays tomorrow's weather with Japanese descriptions.
+### API統合
+Open-Meteo (api.open-meteo.com) の無料天気APIを使用 - APIキー不要。2日間の予報を取得しますが、日本語の説明で明日の天気のみを表示します。
 
-### Permissions Required
-- `ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION` for GPS
-- `INTERNET` for weather API calls
+### 必要な権限
+- GPS用の `ACCESS_FINE_LOCATION` と `ACCESS_COARSE_LOCATION`
+- 天気API呼び出し用の `INTERNET`
 
-## Code Style Guidelines
+## コードスタイルガイドライン
 
-### Comment Conventions
-- **Future Work**: Use proper TODO format with clear description
+### コメント規約
+- **将来の作業**: 明確な説明を含む適切なTODO形式を使用
   ```kotlin
   // TODO: Replace with FavoriteLocationRepository when available
   // TODO: Add reverse geocoding for location names
   ```
-- **Avoid informal comments**: Don't use informal comments like "(will be replaced with Repository)" or "For now, use mock data"
-- **Be specific**: TODO comments should clearly indicate what needs to be done and when
+- **非公式なコメントを避ける**: "(will be replaced with Repository)" や "For now, use mock data" のような非公式なコメントは使用しない
+- **具体的に**: TODOコメントは、何をいつ行う必要があるかを明確に示す必要がある
