@@ -1,6 +1,12 @@
 package com.example.locationweatherforcast.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -37,13 +43,13 @@ fun AppNavigation(
 private fun PlaceholderScreen(title: String) {
     // This is a temporary placeholder screen
     // Will be replaced with actual screens in future issues
-    androidx.compose.foundation.layout.Box(
-        modifier = androidx.compose.foundation.layout.fillMaxSize(),
-        contentAlignment = androidx.compose.ui.Alignment.Center
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
-        androidx.compose.material3.Text(
+        Text(
             text = title,
-            style = androidx.compose.material3.MaterialTheme.typography.headlineMedium
+            style = MaterialTheme.typography.headlineMedium
         )
     }
 }
