@@ -6,6 +6,7 @@ app_requirement.mdにはこのアプリの要件定義書になっています�
  ./gradlew assembleDebug
 ```
 作業は`claude-code`ブランチから作成したブランチで作業してください。
+作業は細かくコミットしてください。
 実装が終わったら`claude-code`向けのRPを作成してください。
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
