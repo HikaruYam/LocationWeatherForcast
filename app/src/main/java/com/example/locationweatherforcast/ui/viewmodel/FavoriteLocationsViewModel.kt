@@ -25,7 +25,7 @@ class FavoriteLocationsViewModel(application: Application) : AndroidViewModel(ap
     private val _uiState = MutableStateFlow<FavoriteLocationsUiState>(FavoriteLocationsUiState.Loading)
     val uiState: StateFlow<FavoriteLocationsUiState> = _uiState.asStateFlow()
     
-    // Mock data for favorite locations (will be replaced with Repository)
+    // TODO: Replace with FavoriteLocationRepository when available
     private val mockFavoriteLocations = mutableListOf<FavoriteLocationWithWeather>()
     private val maxLocations = 5
     
@@ -42,7 +42,6 @@ class FavoriteLocationsViewModel(application: Application) : AndroidViewModel(ap
         viewModelScope.launch {
             try {
                 // TODO: Replace with actual repository call when available
-                // For now, use mock data
                 loadMockData()
                 
                 val canAddMore = mockFavoriteLocations.size < maxLocations
@@ -83,7 +82,7 @@ class FavoriteLocationsViewModel(application: Application) : AndroidViewModel(ap
                     weatherData = weatherData
                 )
                 
-                // Add to mock list (TODO: Replace with repository call)
+                // TODO: Replace with repository call
                 mockFavoriteLocations.add(newLocation)
                 
                 // Update UI state
@@ -160,7 +159,6 @@ class FavoriteLocationsViewModel(application: Application) : AndroidViewModel(ap
                 _uiState.value = FavoriteLocationsUiState.Loading
                 
                 // TODO: Fetch weather data for each location from repository
-                // For now, just reload the current state
                 loadFavoriteLocations()
                 
             } catch (e: Exception) {
