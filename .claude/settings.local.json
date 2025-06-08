@@ -9,7 +9,11 @@
       "Bash(gh label:*)",
       "Bash(./gradlew:*)",
       "Bash(chmod:*)",
-      "Bash(java:*)"
+      "Bash(java:*)",
+      "Bash(git commit:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh pr edit:*)"
     ],
     "deny": []
   }

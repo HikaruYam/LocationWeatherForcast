@@ -1,6 +1,12 @@
 # CLAUDE.md
 すべてのやりとりは日本語で行ってください。
 app_requirement.mdにはこのアプリの要件定義書になっています。
+実装が終わったら以下のコマンドでビルドが通るか確認し、エラーが発生したら、その原因を解消してください。
+```bash
+ ./gradlew assembleDebug
+```
+作業は`claude-code`ブランチから作成したブランチで作業してください。
+実装が終わったら`claude-code`向けのRPを作成してください。
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
