@@ -5,10 +5,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import com.example.locationweatherforcast.ui.screens.WeatherScreen
+import androidx.navigation.compose.rememberNavController
+import com.example.locationweatherforcast.navigation.AppNavigation
+import com.example.locationweatherforcast.navigation.BottomNavigationBar
 import com.example.locationweatherforcast.ui.theme.LocationWeatherForcastTheme
 
 class MainActivity : ComponentActivity() {
@@ -17,11 +21,22 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             LocationWeatherForcastTheme {
-                Surface(
+                val navController = rememberNavController()
+                
+                Scaffold(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    WeatherScreen()
+                    bottomBar = {
+                        BottomNavigationBar(navController = navController)
+                    }
+                ) { innerPadding ->
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        AppNavigation(navController = navController)
+                    }
                 }
             }
         }

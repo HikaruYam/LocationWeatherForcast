@@ -6,7 +6,10 @@
       "Bash(git push:*)",
       "Bash(gh issue create:*)",
       "Bash(gh auth:*)",
-      "Bash(gh label:*)"
+      "Bash(gh label:*)",
+      "Bash(./gradlew:*)",
+      "Bash(chmod:*)",
+      "Bash(java:*)"
     ],
     "deny": []
   }
