@@ -3,7 +3,10 @@
     "allow": [
       "Bash(git checkout:*)",
       "Bash(git add:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(gh issue create:*)",
+      "Bash(gh auth:*)",
+      "Bash(gh label:*)"
     ],
     "deny": []
   }

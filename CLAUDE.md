@@ -1,5 +1,6 @@
 # CLAUDE.md
 すべてのやりとりは日本語で行ってください。
+app_requirement.mdにはこのアプリの要件定義書になっています。
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
