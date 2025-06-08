@@ -57,6 +57,9 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     
+    // Navigation
+    implementation(libs.androidx.navigation.compose)
+    
     // Location Services
     implementation("com.google.android.gms:play-services-location:21.2.0")
     
