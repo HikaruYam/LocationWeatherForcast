@@ -13,7 +13,9 @@
       "Bash(git commit:*)",
       "Bash(gh issue list:*)",
       "Bash(gh issue view:*)",
-      "Bash(gh pr edit:*)"
+      "Bash(gh pr edit:*)",
+      "Bash(git stash:*)",
+      "Bash(git merge:*)"
     ],
     "deny": []
   }

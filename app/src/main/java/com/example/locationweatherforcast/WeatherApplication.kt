@@ -1,11 +1,10 @@
 package com.example.locationweatherforcast
 
 import android.app.Application
-import com.example.locationweatherforcast.data.database.AppDatabase
+import dagger.hilt.android.HiltAndroidApp
 
+@HiltAndroidApp
 class WeatherApplication : Application() {
-    
-    val database by lazy { AppDatabase.getDatabase(this) }
     
     override fun onCreate() {
         super.onCreate()
