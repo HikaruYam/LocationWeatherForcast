@@ -77,3 +77,14 @@ Uses Open-Meteo (api.open-meteo.com) free weather API - no API key required. Fet
 ### Permissions Required
 - `ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION` for GPS
 - `INTERNET` for weather API calls
+
+## Code Style Guidelines
+
+### Comment Conventions
+- **Future Work**: Use proper TODO format with clear description
+  ```kotlin
+  // TODO: Replace with FavoriteLocationRepository when available
+  // TODO: Add reverse geocoding for location names
+  ```
+- **Avoid informal comments**: Don't use informal comments like "(will be replaced with Repository)" or "For now, use mock data"
+- **Be specific**: TODO comments should clearly indicate what needs to be done and when
