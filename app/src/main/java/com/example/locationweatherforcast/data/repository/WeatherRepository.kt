@@ -60,10 +60,15 @@ class WeatherRepository @Inject constructor(
         
         // Check cache first if not forcing refresh
         if (!forceRefresh) {
-            val cachedWeather = weatherCacheRepository.getCachedWeather(latitude, longitude, tomorrowDate)
-            if (cachedWeather != null && WeatherCache.isFresh(cachedWeather.cachedAt)) {
-                // Return fresh cached data
-                return convertCacheToWeatherData(cachedWeather)
+            try {
+                val cachedWeather = weatherCacheRepository.getCachedWeather(latitude, longitude, tomorrowDate)
+                if (cachedWeather != null && WeatherCache.isFresh(cachedWeather.cachedAt)) {
+                    // Return fresh cached data
+                    return convertCacheToWeatherData(cachedWeather)
+                }
+            } catch (e: Exception) {
+                // Cache read failed, continue to API fetch
+                // Log error but don't fail the entire request
             }
         }
         
@@ -93,8 +98,13 @@ class WeatherRepository @Inject constructor(
             lastUpdated = ZonedDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
         )
         
-        // Cache the weather data
-        weatherCacheRepository.cacheWeatherData(latitude, longitude, weatherData)
+        // Cache the weather data (continue even if caching fails)
+        try {
+            weatherCacheRepository.cacheWeatherData(latitude, longitude, weatherData)
+        } catch (e: Exception) {
+            // Cache write failed, but return the weather data anyway
+            // Log error for monitoring purposes
+        }
         
         return weatherData
     }

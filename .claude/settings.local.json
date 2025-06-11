@@ -23,7 +23,9 @@
       "Bash(git fetch:*)",
       "Bash(git stash:*)",
       "Bash(git merge:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr review:*)"
     ],
     "deny": []
   }

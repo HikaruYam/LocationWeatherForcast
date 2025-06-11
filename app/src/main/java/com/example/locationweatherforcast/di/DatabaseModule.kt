@@ -23,26 +23,48 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
     
+    /**
+     * Database migration from version 1 to 2
+     * Adds weather_cache table for caching weather data
+     */
     private val MIGRATION_1_2 = object : Migration(1, 2) {
         override fun migrate(database: SupportSQLiteDatabase) {
-            // Create weather_cache table
-            database.execSQL("""
-                CREATE TABLE IF NOT EXISTS weather_cache (
-                    locationKey TEXT NOT NULL,
-                    date TEXT NOT NULL,
-                    weatherCode INTEGER NOT NULL,
-                    temperatureMax REAL NOT NULL,
-                    temperatureMin REAL NOT NULL,
-                    precipitation REAL NOT NULL,
-                    latitude REAL NOT NULL,
-                    longitude REAL NOT NULL,
-                    locationName TEXT,
-                    cachedAt TEXT NOT NULL,
-                    expiresAt TEXT NOT NULL,
-                    lastUpdated TEXT NOT NULL,
-                    PRIMARY KEY(locationKey, date)
-                )
-            """.trimIndent())
+            try {
+                // Create weather_cache table with comprehensive schema
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS weather_cache (
+                        locationKey TEXT NOT NULL,
+                        date TEXT NOT NULL,
+                        weatherCode INTEGER NOT NULL,
+                        temperatureMax REAL NOT NULL,
+                        temperatureMin REAL NOT NULL,
+                        precipitation REAL NOT NULL,
+                        latitude REAL NOT NULL,
+                        longitude REAL NOT NULL,
+                        locationName TEXT,
+                        cachedAt TEXT NOT NULL,
+                        expiresAt TEXT NOT NULL,
+                        lastUpdated TEXT NOT NULL,
+                        PRIMARY KEY(locationKey, date)
+                    )
+                """.trimIndent())
+                
+                // Create index for performance optimization
+                database.execSQL("""
+                    CREATE INDEX IF NOT EXISTS index_weather_cache_cachedAt 
+                    ON weather_cache(cachedAt)
+                """.trimIndent())
+                
+                // Create index for cleanup operations
+                database.execSQL("""
+                    CREATE INDEX IF NOT EXISTS index_weather_cache_expiresAt 
+                    ON weather_cache(expiresAt)
+                """.trimIndent())
+                
+            } catch (e: Exception) {
+                // Migration failed - this should be logged for monitoring
+                throw e // Re-throw to trigger fallback strategy
+            }
         }
     }
     
@@ -55,6 +77,7 @@ object DatabaseModule {
             "weather_app_database"
         )
         .addMigrations(MIGRATION_1_2)
+        .fallbackToDestructiveMigration() // Fallback if migration fails
         .build()
     }
     

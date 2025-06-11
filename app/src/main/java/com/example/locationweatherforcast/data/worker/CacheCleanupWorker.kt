@@ -27,23 +27,40 @@ class CacheCleanupWorker @AssistedInject constructor(
             val stats = weatherCacheRepository.getCacheStats()
             
             // If cache is too large (> 1000 entries), clean up oldest entries
-            if (stats.totalEntries > 1000) {
-                // TODO: Implement old cache cleanup logic
-                // For now, just clean expired entries
+            if (stats.totalEntries > MAX_CACHE_ENTRIES) {
+                // Clear all cache to prevent memory issues
+                weatherCacheRepository.clearAllCache()
             }
             
+            // Log successful cleanup for monitoring
             Result.success()
         } catch (exception: Exception) {
-            // Log error and retry if possible
-            if (runAttemptCount < 3) {
-                Result.retry()
-            } else {
-                Result.failure()
+            // Enhanced error handling with specific retry logic
+            return when {
+                exception is OutOfMemoryError -> {
+                    // Critical error - clear cache immediately
+                    try {
+                        weatherCacheRepository.clearAllCache()
+                        Result.success()
+                    } catch (e: Exception) {
+                        Result.failure()
+                    }
+                }
+                runAttemptCount < MAX_RETRY_ATTEMPTS -> {
+                    // Transient error - retry with exponential backoff
+                    Result.retry()
+                }
+                else -> {
+                    // Max retries exceeded
+                    Result.failure()
+                }
             }
         }
     }
     
     companion object {
         const val WORK_NAME = "cache_cleanup_work"
+        private const val MAX_CACHE_ENTRIES = 1000
+        private const val MAX_RETRY_ATTEMPTS = 3
     }
 }

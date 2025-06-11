@@ -2,6 +2,7 @@ package com.example.locationweatherforcast.data.database
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import java.time.Duration
 import java.time.LocalDateTime
 
 /**
@@ -37,27 +38,37 @@ data class WeatherCache(
          * Check if cache entry is fresh (< 15 minutes old)
          */
         fun isFresh(cachedAt: String): Boolean {
-            val cached = LocalDateTime.parse(cachedAt)
-            val now = LocalDateTime.now()
-            return cached.plusMinutes(15).isAfter(now)
+            return try {
+                val cached = LocalDateTime.parse(cachedAt)
+                Duration.between(cached, LocalDateTime.now()).toMinutes() < 15
+            } catch (e: Exception) {
+                false // Treat invalid timestamps as expired
+            }
         }
         
         /**
          * Check if cache entry is stale but usable (15-60 minutes old)
          */
         fun isStale(cachedAt: String): Boolean {
-            val cached = LocalDateTime.parse(cachedAt)
-            val now = LocalDateTime.now()
-            return cached.plusMinutes(15).isBefore(now) && cached.plusMinutes(60).isAfter(now)
+            return try {
+                val cached = LocalDateTime.parse(cachedAt)
+                val minutesOld = Duration.between(cached, LocalDateTime.now()).toMinutes()
+                minutesOld in 15..59
+            } catch (e: Exception) {
+                false // Treat invalid timestamps as expired
+            }
         }
         
         /**
          * Check if cache entry is expired (> 60 minutes old)
          */
         fun isExpired(cachedAt: String): Boolean {
-            val cached = LocalDateTime.parse(cachedAt)
-            val now = LocalDateTime.now()
-            return cached.plusMinutes(60).isBefore(now)
+            return try {
+                val cached = LocalDateTime.parse(cachedAt)
+                Duration.between(cached, LocalDateTime.now()).toMinutes() >= 60
+            } catch (e: Exception) {
+                true // Treat invalid timestamps as expired
+            }
         }
     }
 }
