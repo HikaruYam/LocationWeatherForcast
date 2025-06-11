@@ -6,13 +6,14 @@ import androidx.room.RoomDatabase
 import android.content.Context
 
 @Database(
-    entities = [FavoriteLocation::class],
-    version = 1,
+    entities = [FavoriteLocation::class, WeatherCache::class],
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     
     abstract fun favoriteLocationDao(): FavoriteLocationDao
+    abstract fun weatherCacheDao(): WeatherCacheDao
     
     companion object {
         @Volatile

@@ -2,10 +2,15 @@ package com.example.locationweatherforcast.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.locationweatherforcast.data.database.AppDatabase
 import com.example.locationweatherforcast.data.database.FavoriteLocationDao
+import com.example.locationweatherforcast.data.database.WeatherCacheDao
 import com.example.locationweatherforcast.data.repository.FavoriteLocationRepository
 import com.example.locationweatherforcast.data.repository.FavoriteLocationRepositoryImpl
+import com.example.locationweatherforcast.data.repository.WeatherCacheRepository
+import com.example.locationweatherforcast.data.repository.WeatherCacheRepositoryImpl
 import dagger.Module
 import dagger.Provides
 import dagger.Binds
@@ -18,6 +23,29 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
     
+    private val MIGRATION_1_2 = object : Migration(1, 2) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // Create weather_cache table
+            database.execSQL("""
+                CREATE TABLE IF NOT EXISTS weather_cache (
+                    locationKey TEXT NOT NULL,
+                    date TEXT NOT NULL,
+                    weatherCode INTEGER NOT NULL,
+                    temperatureMax REAL NOT NULL,
+                    temperatureMin REAL NOT NULL,
+                    precipitation REAL NOT NULL,
+                    latitude REAL NOT NULL,
+                    longitude REAL NOT NULL,
+                    locationName TEXT,
+                    cachedAt TEXT NOT NULL,
+                    expiresAt TEXT NOT NULL,
+                    lastUpdated TEXT NOT NULL,
+                    PRIMARY KEY(locationKey, date)
+                )
+            """.trimIndent())
+        }
+    }
+    
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
@@ -25,12 +53,19 @@ object DatabaseModule {
             context.applicationContext,
             AppDatabase::class.java,
             "weather_app_database"
-        ).build()
+        )
+        .addMigrations(MIGRATION_1_2)
+        .build()
     }
     
     @Provides
     fun provideFavoriteLocationDao(database: AppDatabase): FavoriteLocationDao {
         return database.favoriteLocationDao()
+    }
+    
+    @Provides
+    fun provideWeatherCacheDao(database: AppDatabase): WeatherCacheDao {
+        return database.weatherCacheDao()
     }
 }
 
@@ -43,4 +78,10 @@ abstract class RepositoryModule {
     abstract fun bindFavoriteLocationRepository(
         favoriteLocationRepositoryImpl: FavoriteLocationRepositoryImpl
     ): FavoriteLocationRepository
+    
+    @Binds
+    @Singleton
+    abstract fun bindWeatherCacheRepository(
+        weatherCacheRepositoryImpl: WeatherCacheRepositoryImpl
+    ): WeatherCacheRepository
 }

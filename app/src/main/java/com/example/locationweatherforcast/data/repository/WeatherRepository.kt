@@ -4,6 +4,7 @@ import com.example.locationweatherforcast.data.location.LocationService
 import com.example.locationweatherforcast.data.model.LocationData
 import com.example.locationweatherforcast.data.model.WeatherData
 import com.example.locationweatherforcast.data.remote.WeatherApiService
+import com.example.locationweatherforcast.data.database.WeatherCache
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
@@ -15,7 +16,8 @@ import javax.inject.Singleton
 @Singleton
 class WeatherRepository @Inject constructor(
     private val locationService: LocationService,
-    private val weatherApiService: WeatherApiService
+    private val weatherApiService: WeatherApiService,
+    private val weatherCacheRepository: WeatherCacheRepository
 ) {
     /**
      * Get the weather forecast for the current location
@@ -43,12 +45,28 @@ class WeatherRepository @Inject constructor(
     }
     
     /**
-     * Get the weather forecast for a specific location
+     * Get the weather forecast for a specific location with caching
      * @param latitude Latitude of the location
      * @param longitude Longitude of the location
+     * @param forceRefresh Force refresh from API even if cache is fresh
      * @return WeatherData containing forecast information
      */
-    suspend fun getWeatherForecastForLocation(latitude: Double, longitude: Double): WeatherData {
+    suspend fun getWeatherForecastForLocation(
+        latitude: Double, 
+        longitude: Double, 
+        forceRefresh: Boolean = false
+    ): WeatherData {
+        val tomorrowDate = ZonedDateTime.now().plusDays(1).toLocalDate().toString()
+        
+        // Check cache first if not forcing refresh
+        if (!forceRefresh) {
+            val cachedWeather = weatherCacheRepository.getCachedWeather(latitude, longitude, tomorrowDate)
+            if (cachedWeather != null && WeatherCache.isFresh(cachedWeather.cachedAt)) {
+                // Return fresh cached data
+                return convertCacheToWeatherData(cachedWeather)
+            }
+        }
+        
         // Fetch weather data from API
         val response = weatherApiService.getWeatherForecast(
             latitude = latitude,
@@ -65,7 +83,7 @@ class WeatherRepository @Inject constructor(
         )
         
         // Map API response to our data model
-        return WeatherData(
+        val weatherData = WeatherData(
             date = response.daily.time[tomorrowIndex],
             weatherCode = response.daily.weathercode[tomorrowIndex],
             temperatureMax = response.daily.temperature_2m_max[tomorrowIndex],
@@ -74,5 +92,42 @@ class WeatherRepository @Inject constructor(
             location = location,
             lastUpdated = ZonedDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
         )
+        
+        // Cache the weather data
+        weatherCacheRepository.cacheWeatherData(latitude, longitude, weatherData)
+        
+        return weatherData
+    }
+    
+    /**
+     * Convert cached weather data to WeatherData model
+     */
+    private fun convertCacheToWeatherData(cache: WeatherCache): WeatherData {
+        return WeatherData(
+            date = cache.date,
+            weatherCode = cache.weatherCode,
+            temperatureMax = cache.temperatureMax,
+            temperatureMin = cache.temperatureMin,
+            precipitation = cache.precipitation,
+            location = LocationData(
+                latitude = cache.latitude,
+                longitude = cache.longitude
+            ),
+            lastUpdated = cache.lastUpdated
+        )
+    }
+    
+    /**
+     * Clean up expired cache entries
+     */
+    suspend fun cleanupCache() {
+        weatherCacheRepository.cleanupExpiredCache()
+    }
+    
+    /**
+     * Get cache statistics
+     */
+    suspend fun getCacheStats(): CacheStats {
+        return weatherCacheRepository.getCacheStats()
     }
 }

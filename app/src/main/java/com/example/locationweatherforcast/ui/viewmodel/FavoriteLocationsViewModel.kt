@@ -179,7 +179,8 @@ class FavoriteLocationsViewModel @Inject constructor(
                         try {
                             val weatherData = weatherRepository.getWeatherForecastForLocation(
                                 latitude = location.latitude,
-                                longitude = location.longitude
+                                longitude = location.longitude,
+                                forceRefresh = true // Force refresh from API when manually refreshing
                             )
                             location.copy(weatherData = weatherData)
                         } catch (e: Exception) {
@@ -218,7 +219,8 @@ class FavoriteLocationsViewModel @Inject constructor(
                 val location = mockFavoriteLocations[locationIndex]
                 val weatherData = weatherRepository.getWeatherForecastForLocation(
                     latitude = location.latitude,
-                    longitude = location.longitude
+                    longitude = location.longitude,
+                    forceRefresh = true // Force refresh from API when manually refreshing
                 )
                 
                 // Update the specific location
