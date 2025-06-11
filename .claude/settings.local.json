@@ -13,7 +13,11 @@
       "Bash(git commit:*)",
       "Bash(gh issue list:*)",
       "Bash(gh issue view:*)",
-      "Bash(gh pr edit:*)"
+      "Bash(gh pr edit:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh api:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh issue close:*)"
     ],
     "deny": []
   }
