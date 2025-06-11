@@ -22,28 +22,8 @@ class WeatherRepository @Inject constructor(
      * @return WeatherData containing forecast information
      */
     suspend fun getWeatherForecast(): WeatherData {
-        // Get current location
         val location = locationService.getCurrentLocation()
-        
-        // Fetch weather data from API
-        val response = weatherApiService.getWeatherForecast(
-            latitude = location.latitude,
-            longitude = location.longitude
-        )
-        
-        // Extract tomorrow's forecast (index 0 is today, 1 is tomorrow)
-        val tomorrowIndex = 1
-        
-        // Map API response to our data model
-        return WeatherData(
-            date = response.daily.time[tomorrowIndex],
-            weatherCode = response.daily.weathercode[tomorrowIndex],
-            temperatureMax = response.daily.temperature_2m_max[tomorrowIndex],
-            temperatureMin = response.daily.temperature_2m_min[tomorrowIndex],
-            precipitation = response.daily.precipitation_sum[tomorrowIndex],
-            location = location,
-            lastUpdated = ZonedDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-        )
+        return getWeatherForecastForLocation(location.latitude, location.longitude)
     }
     
     /**

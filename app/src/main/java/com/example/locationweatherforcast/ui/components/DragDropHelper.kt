@@ -13,6 +13,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
@@ -21,6 +22,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.zIndex
 import kotlin.math.roundToInt
 
+@Stable
 class DragDropState(
     val lazyListState: LazyListState,
     private val onMove: (Int, Int) -> Unit
@@ -144,9 +146,11 @@ fun Modifier.draggedItem(
     dragDropState: DragDropState,
     index: Int
 ): Modifier {
-    val isDragging = index == dragDropState.draggedIndex
-    val zIndex = if (isDragging) 1f else 0f
-    val elevation = if (isDragging) 8f else 0f
+    val isDragging = remember(dragDropState.draggedIndex, index) {
+        index == dragDropState.draggedIndex
+    }
+    val zIndex = remember(isDragging) { if (isDragging) 1f else 0f }
+    val elevation = remember(isDragging) { if (isDragging) 8f else 0f }
     
     return this
         .zIndex(zIndex)

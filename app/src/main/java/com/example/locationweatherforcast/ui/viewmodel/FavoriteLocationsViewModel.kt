@@ -5,11 +5,13 @@ import androidx.lifecycle.viewModelScope
 import android.app.Application
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import com.example.locationweatherforcast.data.database.FavoriteLocation
 import com.example.locationweatherforcast.data.location.LocationService
 import com.example.locationweatherforcast.data.model.FavoriteLocationWithWeather
 import com.example.locationweatherforcast.data.model.WeatherData
 import com.example.locationweatherforcast.data.model.LocationData
 import com.example.locationweatherforcast.data.repository.WeatherRepository
+import com.example.locationweatherforcast.data.repository.FavoriteLocationRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,7 +26,9 @@ import java.util.UUID
 @HiltViewModel
 class FavoriteLocationsViewModel @Inject constructor(
     application: Application,
-    private val weatherRepository: WeatherRepository
+    private val weatherRepository: WeatherRepository,
+    private val favoriteLocationRepository: FavoriteLocationRepository,
+    private val locationService: LocationService
 ) : AndroidViewModel(application) {
     
     // UI state

@@ -86,7 +86,7 @@ fun LocationCard(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "緯度: ${String.format("%.3f", location.latitude)}, 経度: ${String.format("%.3f", location.longitude)}",
+                    text = "${String.format("%.2f", location.latitude)}, ${String.format("%.2f", location.longitude)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

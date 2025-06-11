@@ -283,12 +283,12 @@ private fun LocationInfoCard(
             // Coordinates
             InfoRow(
                 label = "緯度",
-                value = String.format("%.6f", location.latitude)
+                value = String.format("%.4f", location.latitude)
             )
             
             InfoRow(
                 label = "経度",
-                value = String.format("%.6f", location.longitude)
+                value = String.format("%.4f", location.longitude)
             )
             
             // Order
