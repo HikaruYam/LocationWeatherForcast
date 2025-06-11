@@ -3,6 +3,8 @@ package com.example.locationweatherforcast.ui.viewmodel
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import android.app.Application
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import com.example.locationweatherforcast.data.location.LocationService
 import com.example.locationweatherforcast.data.model.FavoriteLocationWithWeather
 import com.example.locationweatherforcast.data.model.WeatherData
@@ -19,10 +21,11 @@ import java.util.UUID
 /**
  * ViewModel for favorite locations screen
  */
-class FavoriteLocationsViewModel(application: Application) : AndroidViewModel(application) {
-    
-    private val locationService = LocationService(application)
-    private val weatherRepository = WeatherRepository(locationService)
+@HiltViewModel
+class FavoriteLocationsViewModel @Inject constructor(
+    application: Application,
+    private val weatherRepository: WeatherRepository
+) : AndroidViewModel(application) {
     
     // UI state
     private val _uiState = MutableStateFlow<FavoriteLocationsUiState>(FavoriteLocationsUiState.Loading)

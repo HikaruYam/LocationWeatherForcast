@@ -3,17 +3,19 @@ package com.example.locationweatherforcast.data.repository
 import com.example.locationweatherforcast.data.location.LocationService
 import com.example.locationweatherforcast.data.model.LocationData
 import com.example.locationweatherforcast.data.model.WeatherData
-import com.example.locationweatherforcast.data.remote.NetworkModule
 import com.example.locationweatherforcast.data.remote.WeatherApiService
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * Repository for weather-related operations
  */
-class WeatherRepository(
+@Singleton
+class WeatherRepository @Inject constructor(
     private val locationService: LocationService,
-    private val weatherApiService: WeatherApiService = NetworkModule.weatherApiService
+    private val weatherApiService: WeatherApiService
 ) {
     /**
      * Get the weather forecast for the current location

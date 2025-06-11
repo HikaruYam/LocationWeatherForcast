@@ -21,6 +21,7 @@
       "Bash(gh pr checks:*)",
       "Bash(gh pr diff:*)",
       "Bash(git fetch:*)",
+      "Bash(git stash:*)",
       "Bash(git merge:*)"
     ],
     "deny": []

@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.locationweatherforcast.data.model.FavoriteLocationWithWeather
 import com.example.locationweatherforcast.data.model.WeatherData
 import com.example.locationweatherforcast.ui.components.WeatherIcon
@@ -53,7 +54,7 @@ fun LocationDetailScreen(
     locationId: String,
     onNavigateBack: () -> Unit,
     onDeleteLocation: () -> Unit = {},
-    viewModel: FavoriteLocationsViewModel = viewModel()
+    viewModel: FavoriteLocationsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var location by remember { mutableStateOf<FavoriteLocationWithWeather?>(null) }
