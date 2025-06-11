@@ -73,7 +73,14 @@ fun WeatherScreen(
             // Display different UI based on state
             when (uiState) {
                 is WeatherUiState.Loading -> {
-                    LoadingComponent()
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        WeatherCardSkeleton(
+                            modifier = Modifier.padding(top = 16.dp)
+                        )
+                    }
                 }
                 
                 is WeatherUiState.Success -> {

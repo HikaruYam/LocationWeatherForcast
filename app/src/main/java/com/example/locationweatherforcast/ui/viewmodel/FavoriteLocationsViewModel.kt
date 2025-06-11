@@ -35,6 +35,10 @@ class FavoriteLocationsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<FavoriteLocationsUiState>(FavoriteLocationsUiState.Loading)
     val uiState: StateFlow<FavoriteLocationsUiState> = _uiState.asStateFlow()
     
+    // Loading state for individual locations
+    private val _loadingLocationIds = MutableStateFlow<Set<String>>(emptySet())
+    val loadingLocationIds: StateFlow<Set<String>> = _loadingLocationIds.asStateFlow()
+    
     // TODO: Replace with FavoriteLocationRepository when available
     private val mockFavoriteLocations = mutableListOf<FavoriteLocationWithWeather>()
     private val maxLocations = 5
@@ -213,8 +217,15 @@ class FavoriteLocationsViewModel @Inject constructor(
     fun refreshLocationWeatherData(locationId: String) {
         viewModelScope.launch {
             try {
+                // Add location to loading set
+                _loadingLocationIds.value = _loadingLocationIds.value + locationId
+                
                 val locationIndex = mockFavoriteLocations.indexOfFirst { it.id == locationId }
-                if (locationIndex == -1) return@launch
+                if (locationIndex == -1) {
+                    // Remove from loading set if location not found
+                    _loadingLocationIds.value = _loadingLocationIds.value - locationId
+                    return@launch
+                }
                 
                 val location = mockFavoriteLocations[locationIndex]
                 val weatherData = weatherRepository.getWeatherForecastForLocation(
@@ -226,6 +237,9 @@ class FavoriteLocationsViewModel @Inject constructor(
                 // Update the specific location
                 mockFavoriteLocations[locationIndex] = location.copy(weatherData = weatherData)
                 
+                // Remove from loading set
+                _loadingLocationIds.value = _loadingLocationIds.value - locationId
+                
                 // Update UI state
                 val canAddMore = mockFavoriteLocations.size < maxLocations
                 _uiState.value = FavoriteLocationsUiState.Success(
@@ -234,6 +248,8 @@ class FavoriteLocationsViewModel @Inject constructor(
                 )
                 
             } catch (e: Exception) {
+                // Remove from loading set on error
+                _loadingLocationIds.value = _loadingLocationIds.value - locationId
                 _uiState.value = FavoriteLocationsUiState.Error("天気データの更新に失敗しました: ${e.message}")
             }
         }
