@@ -1,26 +1,26 @@
 package com.example.locationweatherforcast.ui.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.locationweatherforcast.data.location.LocationDisabledException
 import com.example.locationweatherforcast.data.location.LocationNotFoundException
-import com.example.locationweatherforcast.data.location.LocationService
 import com.example.locationweatherforcast.data.model.WeatherData
 import com.example.locationweatherforcast.data.repository.WeatherRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.IOException
+import javax.inject.Inject
 
 /**
  * ViewModel for weather forecast screen
  */
-class WeatherViewModel(application: Application) : AndroidViewModel(application) {
-    
-    private val locationService = LocationService(application)
-    private val weatherRepository = WeatherRepository(locationService)
+@HiltViewModel
+class WeatherViewModel @Inject constructor(
+    private val weatherRepository: WeatherRepository
+) : ViewModel() {
     
     // UI state
     private val _uiState = MutableStateFlow<WeatherUiState>(WeatherUiState.Loading)
