@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
@@ -47,12 +49,16 @@ import com.example.locationweatherforcast.ui.components.WeatherIcon
 import com.example.locationweatherforcast.ui.components.LocationCard
 import com.example.locationweatherforcast.ui.components.LocationInputDialog
 import com.example.locationweatherforcast.ui.components.QuickLocationDialog
+import com.example.locationweatherforcast.ui.components.rememberDragDropState
+import com.example.locationweatherforcast.ui.components.dragContainer
+import com.example.locationweatherforcast.ui.components.draggedItem
 import com.example.locationweatherforcast.ui.viewmodel.FavoriteLocationsViewModel
 import com.example.locationweatherforcast.ui.viewmodel.FavoriteLocationsUiState
 
 @Composable
 fun FavoriteLocationsScreen(
-    viewModel: FavoriteLocationsViewModel = viewModel()
+    viewModel: FavoriteLocationsViewModel = viewModel(),
+    onNavigateToLocationDetail: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showLocationInputDialog by remember { mutableStateOf(false) }
@@ -121,6 +127,15 @@ fun FavoriteLocationsScreen(
                             locations = state.locations,
                             onDeleteLocation = { locationId ->
                                 viewModel.deleteLocation(locationId)
+                            },
+                            onReorderLocations = { reorderedList ->
+                                viewModel.reorderLocations(reorderedList)
+                            },
+                            onLocationClick = { locationId ->
+                                onNavigateToLocationDetail(locationId)
+                            },
+                            onRefreshLocation = { locationId ->
+                                viewModel.refreshLocationWeatherData(locationId)
                             }
                         )
                     }
@@ -298,21 +313,45 @@ private fun ErrorContent(
 @Composable
 private fun LocationsList(
     locations: List<FavoriteLocationWithWeather>,
-    onDeleteLocation: (String) -> Unit
+    onDeleteLocation: (String) -> Unit,
+    onReorderLocations: (List<FavoriteLocationWithWeather>) -> Unit,
+    onLocationClick: (String) -> Unit,
+    onRefreshLocation: (String) -> Unit
 ) {
+    val listState = rememberLazyListState()
+    val dragDropState = rememberDragDropState(
+        lazyListState = listState,
+        onMove = { fromIndex, toIndex ->
+            val mutableList = locations.toMutableList()
+            val item = mutableList.removeAt(fromIndex)
+            mutableList.add(toIndex, item)
+            onReorderLocations(mutableList)
+        }
+    )
+
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp)
+            .dragContainer(dragDropState),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(locations) { location ->
+        itemsIndexed(
+            items = locations,
+            key = { _, location -> location.id }
+        ) { index, location ->
             LocationCard(
                 location = location,
                 onDeleteClick = { onDeleteLocation(location.id) },
                 onCardClick = {
-                    // TODO: Navigate to location detail screen
-                }
+                    onLocationClick(location.id)
+                },
+                onRefreshClick = {
+                    onRefreshLocation(location.id)
+                },
+                isDragEnabled = true,
+                modifier = Modifier.draggedItem(dragDropState, index)
             )
         }
         

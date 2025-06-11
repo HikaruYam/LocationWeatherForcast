@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -33,6 +34,7 @@ fun LocationCard(
     location: FavoriteLocationWithWeather,
     onDeleteClick: () -> Unit,
     onCardClick: () -> Unit = {},
+    onRefreshClick: () -> Unit = {},
     isDragEnabled: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -123,15 +125,33 @@ fun LocationCard(
             
             Spacer(modifier = Modifier.width(8.dp))
             
-            // Delete button
-            IconButton(
-                onClick = onDeleteClick
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "削除",
-                    tint = MaterialTheme.colorScheme.error
-                )
+            // Action buttons
+            Row {
+                // Refresh button
+                IconButton(
+                    onClick = onRefreshClick,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "天気データを更新",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                
+                // Delete button
+                IconButton(
+                    onClick = onDeleteClick,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "削除",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
     }
