@@ -45,6 +45,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.locationweatherforcast.data.model.FavoriteLocationWithWeather
 import com.example.locationweatherforcast.data.model.WeatherData
 import com.example.locationweatherforcast.ui.components.WeatherIcon
+import com.example.locationweatherforcast.ui.components.WeatherCardSkeleton
+import com.example.locationweatherforcast.ui.components.LoadingIndicator
+import com.example.locationweatherforcast.ui.components.ProgressButton
 import com.example.locationweatherforcast.ui.viewmodel.FavoriteLocationsViewModel
 import com.example.locationweatherforcast.ui.viewmodel.FavoriteLocationsUiState
 
@@ -380,20 +383,20 @@ private fun InfoRow(
 
 @Composable
 private fun LoadingContent() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            CircularProgressIndicator()
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "場所の詳細を読み込み中...",
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
+        // Weather overview skeleton
+        WeatherCardSkeleton()
+        
+        // Location info skeleton
+        WeatherCardSkeleton()
+        
+        // Weather details skeleton
+        WeatherCardSkeleton()
     }
 }
 

@@ -36,6 +36,7 @@ fun LocationCard(
     onCardClick: () -> Unit = {},
     onRefreshClick: () -> Unit = {},
     isDragEnabled: Boolean = false,
+    isLoading: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -100,10 +101,16 @@ fun LocationCard(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                WeatherIcon(
-                    weatherCode = location.weatherData?.weatherCode ?: 0,
-                    modifier = Modifier.size(32.dp)
-                )
+                if (isLoading) {
+                    PulsingLoadingIndicator(
+                        modifier = Modifier.size(32.dp)
+                    )
+                } else {
+                    WeatherIcon(
+                        weatherCode = location.weatherData?.weatherCode ?: 0,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
                 Spacer(modifier = Modifier.width(8.dp))
                 Column(
                     horizontalAlignment = Alignment.End

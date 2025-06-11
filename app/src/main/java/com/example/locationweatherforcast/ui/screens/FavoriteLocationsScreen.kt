@@ -48,6 +48,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.locationweatherforcast.data.model.FavoriteLocationWithWeather
 import com.example.locationweatherforcast.ui.components.WeatherIcon
 import com.example.locationweatherforcast.ui.components.LocationCard
+import com.example.locationweatherforcast.ui.components.FavoriteLocationsScreenSkeleton
+import com.example.locationweatherforcast.ui.components.LocationCardSkeleton
+import com.example.locationweatherforcast.ui.components.LoadingIndicator
+import com.example.locationweatherforcast.ui.components.ProgressButton
 import com.example.locationweatherforcast.ui.components.LocationInputDialog
 import com.example.locationweatherforcast.ui.components.QuickLocationDialog
 import com.example.locationweatherforcast.ui.components.rememberDragDropState
@@ -62,6 +66,7 @@ fun FavoriteLocationsScreen(
     onNavigateToLocationDetail: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val loadingLocationIds by viewModel.loadingLocationIds.collectAsState()
     var showLocationInputDialog by remember { mutableStateOf(false) }
     var showQuickLocationDialog by remember { mutableStateOf(false) }
     var showAddMenu by remember { mutableStateOf(false) }
@@ -126,6 +131,7 @@ fun FavoriteLocationsScreen(
                     } else {
                         LocationsList(
                             locations = state.locations,
+                            loadingLocationIds = loadingLocationIds,
                             onDeleteLocation = { locationId ->
                                 viewModel.deleteLocation(locationId)
                             },
@@ -222,21 +228,7 @@ fun FavoriteLocationsScreen(
 
 @Composable
 private fun LoadingContent() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            CircularProgressIndicator()
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "天気データを読み込み中...",
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-    }
+    FavoriteLocationsScreenSkeleton()
 }
 
 @Composable
@@ -314,6 +306,7 @@ private fun ErrorContent(
 @Composable
 private fun LocationsList(
     locations: List<FavoriteLocationWithWeather>,
+    loadingLocationIds: Set<String>,
     onDeleteLocation: (String) -> Unit,
     onReorderLocations: (List<FavoriteLocationWithWeather>) -> Unit,
     onLocationClick: (String) -> Unit,
@@ -352,6 +345,7 @@ private fun LocationsList(
                     onRefreshLocation(location.id)
                 },
                 isDragEnabled = true,
+                isLoading = loadingLocationIds.contains(location.id),
                 modifier = Modifier.draggedItem(dragDropState, index)
             )
         }
