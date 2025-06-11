@@ -11,6 +11,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.locationweatherforcast.ui.screens.WeatherScreen
+import com.example.locationweatherforcast.ui.screens.FavoriteLocationsScreen
 
 @Composable
 fun AppNavigation(
@@ -25,9 +26,7 @@ fun AppNavigation(
         }
         
         composable(NavigationRoutes.FAVORITE_LOCATIONS) {
-            // Placeholder for FavoriteLocationsScreen
-            // Will be implemented in future issues
-            PlaceholderScreen(title = "Favorite Locations")
+            FavoriteLocationsScreen()
         }
         
         composable(NavigationRoutes.LOCATION_DETAIL) { backStackEntry ->

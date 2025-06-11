@@ -6,6 +6,7 @@ import android.app.Application
 import com.example.locationweatherforcast.data.location.LocationService
 import com.example.locationweatherforcast.data.model.FavoriteLocationWithWeather
 import com.example.locationweatherforcast.data.model.WeatherData
+import com.example.locationweatherforcast.data.model.LocationData
 import com.example.locationweatherforcast.data.repository.WeatherRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -188,6 +189,55 @@ class FavoriteLocationsViewModel(application: Application) : AndroidViewModel(ap
      */
     fun isLocationEnabled(): Boolean {
         return weatherRepository.isLocationEnabled()
+    }
+    
+    /**
+     * Add a custom location by coordinates
+     */
+    fun addCustomLocation(name: String, latitude: Double, longitude: Double) {
+        if (mockFavoriteLocations.size >= maxLocations) {
+            _uiState.value = FavoriteLocationsUiState.Error("お気に入り場所は最大${maxLocations}箇所までです")
+            return
+        }
+        
+        viewModelScope.launch {
+            try {
+                _uiState.value = FavoriteLocationsUiState.Loading
+                
+                // Create location data
+                val locationData = LocationData(
+                    latitude = latitude,
+                    longitude = longitude,
+                    name = name
+                )
+                
+                // Get weather data for the specified location
+                val weatherData = weatherRepository.getWeatherForecastForLocation(latitude, longitude)
+                
+                // Create new favorite location
+                val newLocation = FavoriteLocationWithWeather(
+                    id = UUID.randomUUID().toString(),
+                    name = name,
+                    latitude = latitude,
+                    longitude = longitude,
+                    order = mockFavoriteLocations.size,
+                    weatherData = weatherData
+                )
+                
+                // TODO: Replace with repository call
+                mockFavoriteLocations.add(newLocation)
+                
+                // Update UI state
+                val canAddMore = mockFavoriteLocations.size < maxLocations
+                _uiState.value = FavoriteLocationsUiState.Success(
+                    locations = mockFavoriteLocations.toList(),
+                    canAddMore = canAddMore
+                )
+                
+            } catch (e: Exception) {
+                _uiState.value = FavoriteLocationsUiState.Error("場所の追加に失敗しました: ${e.message}")
+            }
+        }
     }
 }
 
