@@ -17,7 +17,11 @@
       "Bash(gh pr view:*)",
       "Bash(gh api:*)",
       "Bash(gh pr list:*)",
-      "Bash(gh issue close:*)"
+      "Bash(gh issue close:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh pr diff:*)",
+      "Bash(git fetch:*)",
+      "Bash(git merge:*)"
     ],
     "deny": []
   }
