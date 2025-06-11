@@ -3,23 +3,33 @@ package com.example.locationweatherforcast.ui.viewmodel
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import android.app.Application
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import com.example.locationweatherforcast.data.database.FavoriteLocation
 import com.example.locationweatherforcast.data.location.LocationService
 import com.example.locationweatherforcast.data.model.FavoriteLocationWithWeather
 import com.example.locationweatherforcast.data.model.WeatherData
+import com.example.locationweatherforcast.data.model.LocationData
 import com.example.locationweatherforcast.data.repository.WeatherRepository
+import com.example.locationweatherforcast.data.repository.FavoriteLocationRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import java.util.UUID
 
 /**
  * ViewModel for favorite locations screen
  */
-class FavoriteLocationsViewModel(application: Application) : AndroidViewModel(application) {
-    
-    private val locationService = LocationService(application)
-    private val weatherRepository = WeatherRepository(locationService)
+@HiltViewModel
+class FavoriteLocationsViewModel @Inject constructor(
+    application: Application,
+    private val weatherRepository: WeatherRepository,
+    private val favoriteLocationRepository: FavoriteLocationRepository,
+    private val locationService: LocationService
+) : AndroidViewModel(application) {
     
     // UI state
     private val _uiState = MutableStateFlow<FavoriteLocationsUiState>(FavoriteLocationsUiState.Loading)
@@ -158,8 +168,68 @@ class FavoriteLocationsViewModel(application: Application) : AndroidViewModel(ap
             try {
                 _uiState.value = FavoriteLocationsUiState.Loading
                 
-                // TODO: Fetch weather data for each location from repository
-                loadFavoriteLocations()
+                if (mockFavoriteLocations.isEmpty()) {
+                    loadFavoriteLocations()
+                    return@launch
+                }
+                
+                // Fetch weather data for each location in parallel
+                val updatedLocations = mockFavoriteLocations.map { location ->
+                    async {
+                        try {
+                            val weatherData = weatherRepository.getWeatherForecastForLocation(
+                                latitude = location.latitude,
+                                longitude = location.longitude
+                            )
+                            location.copy(weatherData = weatherData)
+                        } catch (e: Exception) {
+                            // Keep the location but with null weather data if fetch fails
+                            location.copy(weatherData = null)
+                        }
+                    }
+                }.awaitAll()
+                
+                // Update the mock data
+                mockFavoriteLocations.clear()
+                mockFavoriteLocations.addAll(updatedLocations)
+                
+                // Update UI state
+                val canAddMore = mockFavoriteLocations.size < maxLocations
+                _uiState.value = FavoriteLocationsUiState.Success(
+                    locations = mockFavoriteLocations.toList(),
+                    canAddMore = canAddMore
+                )
+                
+            } catch (e: Exception) {
+                _uiState.value = FavoriteLocationsUiState.Error("天気データの更新に失敗しました: ${e.message}")
+            }
+        }
+    }
+    
+    /**
+     * Refresh weather data for a specific location
+     */
+    fun refreshLocationWeatherData(locationId: String) {
+        viewModelScope.launch {
+            try {
+                val locationIndex = mockFavoriteLocations.indexOfFirst { it.id == locationId }
+                if (locationIndex == -1) return@launch
+                
+                val location = mockFavoriteLocations[locationIndex]
+                val weatherData = weatherRepository.getWeatherForecastForLocation(
+                    latitude = location.latitude,
+                    longitude = location.longitude
+                )
+                
+                // Update the specific location
+                mockFavoriteLocations[locationIndex] = location.copy(weatherData = weatherData)
+                
+                // Update UI state
+                val canAddMore = mockFavoriteLocations.size < maxLocations
+                _uiState.value = FavoriteLocationsUiState.Success(
+                    locations = mockFavoriteLocations.toList(),
+                    canAddMore = canAddMore
+                )
                 
             } catch (e: Exception) {
                 _uiState.value = FavoriteLocationsUiState.Error("天気データの更新に失敗しました: ${e.message}")
@@ -188,6 +258,55 @@ class FavoriteLocationsViewModel(application: Application) : AndroidViewModel(ap
      */
     fun isLocationEnabled(): Boolean {
         return weatherRepository.isLocationEnabled()
+    }
+    
+    /**
+     * Add a custom location by coordinates
+     */
+    fun addCustomLocation(name: String, latitude: Double, longitude: Double) {
+        if (mockFavoriteLocations.size >= maxLocations) {
+            _uiState.value = FavoriteLocationsUiState.Error("お気に入り場所は最大${maxLocations}箇所までです")
+            return
+        }
+        
+        viewModelScope.launch {
+            try {
+                _uiState.value = FavoriteLocationsUiState.Loading
+                
+                // Create location data
+                val locationData = LocationData(
+                    latitude = latitude,
+                    longitude = longitude,
+                    name = name
+                )
+                
+                // Get weather data for the specified location
+                val weatherData = weatherRepository.getWeatherForecastForLocation(latitude, longitude)
+                
+                // Create new favorite location
+                val newLocation = FavoriteLocationWithWeather(
+                    id = UUID.randomUUID().toString(),
+                    name = name,
+                    latitude = latitude,
+                    longitude = longitude,
+                    order = mockFavoriteLocations.size,
+                    weatherData = weatherData
+                )
+                
+                // TODO: Replace with repository call
+                mockFavoriteLocations.add(newLocation)
+                
+                // Update UI state
+                val canAddMore = mockFavoriteLocations.size < maxLocations
+                _uiState.value = FavoriteLocationsUiState.Success(
+                    locations = mockFavoriteLocations.toList(),
+                    canAddMore = canAddMore
+                )
+                
+            } catch (e: Exception) {
+                _uiState.value = FavoriteLocationsUiState.Error("場所の追加に失敗しました: ${e.message}")
+            }
+        }
     }
 }
 

@@ -11,6 +11,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.locationweatherforcast.ui.screens.WeatherScreen
+import com.example.locationweatherforcast.ui.screens.FavoriteLocationsScreen
+import com.example.locationweatherforcast.ui.screens.LocationDetailScreen
 
 @Composable
 fun AppNavigation(
@@ -25,16 +27,25 @@ fun AppNavigation(
         }
         
         composable(NavigationRoutes.FAVORITE_LOCATIONS) {
-            // Placeholder for FavoriteLocationsScreen
-            // Will be implemented in future issues
-            PlaceholderScreen(title = "Favorite Locations")
+            FavoriteLocationsScreen(
+                onNavigateToLocationDetail = { locationId ->
+                    navController.navigate(NavigationRoutes.locationDetail(locationId))
+                }
+            )
         }
         
         composable(NavigationRoutes.LOCATION_DETAIL) { backStackEntry ->
             val locationId = backStackEntry.arguments?.getString("locationId") ?: ""
-            // Placeholder for LocationDetailScreen
-            // Will be implemented in future issues
-            PlaceholderScreen(title = "Location Detail: $locationId")
+            LocationDetailScreen(
+                locationId = locationId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onDeleteLocation = {
+                    // Navigate back to favorites after deletion
+                    navController.popBackStack()
+                }
+            )
         }
     }
 }

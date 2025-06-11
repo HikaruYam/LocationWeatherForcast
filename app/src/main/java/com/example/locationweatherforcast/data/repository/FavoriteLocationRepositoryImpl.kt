@@ -3,7 +3,9 @@ package com.example.locationweatherforcast.data.repository
 import com.example.locationweatherforcast.data.database.FavoriteLocation
 import com.example.locationweatherforcast.data.database.FavoriteLocationDao
 import kotlinx.coroutines.flow.Flow
-class FavoriteLocationRepositoryImpl(
+import javax.inject.Inject
+
+class FavoriteLocationRepositoryImpl @Inject constructor(
     private val favoriteLocationDao: FavoriteLocationDao
 ) : FavoriteLocationRepository {
     
