@@ -59,6 +59,12 @@ import com.example.locationweatherforcast.ui.components.dragContainer
 import com.example.locationweatherforcast.ui.components.draggedItem
 import com.example.locationweatherforcast.ui.viewmodel.FavoriteLocationsViewModel
 import com.example.locationweatherforcast.ui.viewmodel.FavoriteLocationsUiState
+import com.example.locationweatherforcast.ui.viewmodel.FavoriteLocationErrorType
+import com.example.locationweatherforcast.ui.components.EmptyFavoritesComponent
+import com.example.locationweatherforcast.ui.components.ErrorStateComponent
+import com.example.locationweatherforcast.ui.components.ErrorAction
+import com.example.locationweatherforcast.ui.components.NetworkErrorComponent
+import com.example.locationweatherforcast.ui.components.LocationPermissionErrorComponent
 
 @Composable
 fun FavoriteLocationsScreen(
@@ -110,6 +116,17 @@ fun FavoriteLocationsScreen(
                         }
                     }
                 }
+                is FavoriteLocationsUiState.Empty -> {
+                    FloatingActionButton(
+                        onClick = { showAddMenu = true },
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "場所を追加"
+                        )
+                    }
+                }
                 else -> {}
             }
         }
@@ -123,35 +140,95 @@ fun FavoriteLocationsScreen(
                 is FavoriteLocationsUiState.Loading -> {
                     LoadingContent()
                 }
+                is FavoriteLocationsUiState.Empty -> {
+                    EmptyFavoritesComponent(
+                        onAddCurrentLocation = { viewModel.addCurrentLocation() },
+                        onAddManualLocation = { showLocationInputDialog = true }
+                    )
+                }
                 is FavoriteLocationsUiState.Success -> {
-                    if (state.locations.isEmpty()) {
-                        EmptyContent(
-                            onAddCurrentLocation = { viewModel.addCurrentLocation() }
-                        )
-                    } else {
-                        LocationsList(
-                            locations = state.locations,
-                            loadingLocationIds = loadingLocationIds,
-                            onDeleteLocation = { locationId ->
-                                viewModel.deleteLocation(locationId)
-                            },
-                            onReorderLocations = { reorderedList ->
-                                viewModel.reorderLocations(reorderedList)
-                            },
-                            onLocationClick = { locationId ->
-                                onNavigateToLocationDetail(locationId)
-                            },
-                            onRefreshLocation = { locationId ->
-                                viewModel.refreshLocationWeatherData(locationId)
-                            }
-                        )
-                    }
+                    LocationsList(
+                        locations = state.locations,
+                        loadingLocationIds = loadingLocationIds,
+                        onDeleteLocation = { locationId ->
+                            viewModel.deleteLocation(locationId)
+                        },
+                        onReorderLocations = { reorderedList ->
+                            viewModel.reorderLocations(reorderedList)
+                        },
+                        onLocationClick = { locationId ->
+                            onNavigateToLocationDetail(locationId)
+                        },
+                        onRefreshLocation = { locationId ->
+                            viewModel.refreshLocationWeatherData(locationId)
+                        }
+                    )
                 }
                 is FavoriteLocationsUiState.Error -> {
-                    ErrorContent(
-                        message = state.message,
-                        onRetry = { viewModel.refreshWeatherData() }
-                    )
+                    when (state.type) {
+                        FavoriteLocationErrorType.NETWORK_ERROR -> {
+                            NetworkErrorComponent(
+                                onRetry = { viewModel.refreshWeatherData() }
+                            )
+                        }
+                        FavoriteLocationErrorType.PERMISSION_ERROR -> {
+                            LocationPermissionErrorComponent(
+                                onRequestPermission = {
+                                    // TODO: Handle permission request
+                                },
+                                onManualLocation = {
+                                    showLocationInputDialog = true
+                                }
+                            )
+                        }
+                        FavoriteLocationErrorType.LOCATION_DISABLED -> {
+                            ErrorStateComponent(
+                                title = "位置情報が無効です",
+                                message = state.message,
+                                icon = Icons.Default.LocationOn,
+                                primaryAction = ErrorAction(
+                                    text = "設定を開く",
+                                    icon = Icons.Default.LocationOn,
+                                    onClick = {
+                                        // TODO: Open location settings
+                                    }
+                                ),
+                                secondaryAction = ErrorAction(
+                                    text = "手動で追加",
+                                    icon = Icons.Default.Edit,
+                                    onClick = {
+                                        showLocationInputDialog = true
+                                    }
+                                )
+                            )
+                        }
+                        FavoriteLocationErrorType.MAX_LOCATIONS_REACHED -> {
+                            ErrorStateComponent(
+                                title = "お気に入りが上限に達しています",
+                                message = state.message,
+                                icon = Icons.Default.LocationOn,
+                                primaryAction = ErrorAction(
+                                    text = "場所を削除してから追加",
+                                    icon = Icons.Default.Refresh,
+                                    onClick = {
+                                        // Do nothing, just close error state
+                                        viewModel.refreshWeatherData()
+                                    }
+                                )
+                            )
+                        }
+                        FavoriteLocationErrorType.GENERIC_ERROR -> {
+                            ErrorStateComponent(
+                                title = "エラーが発生しました",
+                                message = state.message,
+                                primaryAction = ErrorAction(
+                                    text = "再試行",
+                                    icon = Icons.Default.Refresh,
+                                    onClick = { viewModel.refreshWeatherData() }
+                                )
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -231,77 +308,6 @@ private fun LoadingContent() {
     FavoriteLocationsScreenSkeleton()
 }
 
-@Composable
-private fun EmptyContent(
-    onAddCurrentLocation: () -> Unit
-) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(32.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.LocationOn,
-                contentDescription = null,
-                modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "お気に入りの場所がありません",
-                style = MaterialTheme.typography.headlineSmall,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "右下の「+」ボタンで現在地を追加できます",
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun ErrorContent(
-    message: String,
-    onRetry: () -> Unit
-) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(32.dp)
-        ) {
-            Text(
-                text = "エラーが発生しました",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.error
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            IconButton(
-                onClick = onRetry
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "再試行"
-                )
-            }
-        }
-    }
-}
 
 @Composable
 private fun LocationsList(

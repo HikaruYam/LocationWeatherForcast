@@ -58,13 +58,20 @@ class FavoriteLocationsViewModel @Inject constructor(
                 // TODO: Replace with actual repository call when available
                 loadMockData()
                 
-                val canAddMore = mockFavoriteLocations.size < maxLocations
-                _uiState.value = FavoriteLocationsUiState.Success(
-                    locations = mockFavoriteLocations.toList(),
-                    canAddMore = canAddMore
-                )
+                if (mockFavoriteLocations.isEmpty()) {
+                    _uiState.value = FavoriteLocationsUiState.Empty
+                } else {
+                    val canAddMore = mockFavoriteLocations.size < maxLocations
+                    _uiState.value = FavoriteLocationsUiState.Success(
+                        locations = mockFavoriteLocations.toList(),
+                        canAddMore = canAddMore
+                    )
+                }
             } catch (e: Exception) {
-                _uiState.value = FavoriteLocationsUiState.Error("お気に入り場所の読み込みに失敗しました: ${e.message}")
+                _uiState.value = FavoriteLocationsUiState.Error(
+                    type = FavoriteLocationErrorType.GENERIC_ERROR,
+                    message = "お気に入り場所の読み込みに失敗しました: ${e.message}"
+                )
             }
         }
     }
@@ -74,7 +81,10 @@ class FavoriteLocationsViewModel @Inject constructor(
      */
     fun addCurrentLocation() {
         if (mockFavoriteLocations.size >= maxLocations) {
-            _uiState.value = FavoriteLocationsUiState.Error("お気に入り場所は最大${maxLocations}箇所までです")
+            _uiState.value = FavoriteLocationsUiState.Error(
+                type = FavoriteLocationErrorType.MAX_LOCATIONS_REACHED,
+                message = "お気に入り場所は最大${maxLocations}箇所までです"
+            )
             return
         }
         
@@ -107,9 +117,15 @@ class FavoriteLocationsViewModel @Inject constructor(
                 )
                 
             } catch (e: SecurityException) {
-                _uiState.value = FavoriteLocationsUiState.Error("位置情報の許可が必要です")
+                _uiState.value = FavoriteLocationsUiState.Error(
+                    type = FavoriteLocationErrorType.PERMISSION_ERROR,
+                    message = "位置情報の許可が必要です"
+                )
             } catch (e: Exception) {
-                _uiState.value = FavoriteLocationsUiState.Error("現在地の追加に失敗しました: ${e.message}")
+                _uiState.value = FavoriteLocationsUiState.Error(
+                    type = FavoriteLocationErrorType.GENERIC_ERROR,
+                    message = "現在地の追加に失敗しました: ${e.message}"
+                )
             }
         }
     }
@@ -135,7 +151,10 @@ class FavoriteLocationsViewModel @Inject constructor(
                     canAddMore = canAddMore
                 )
             } catch (e: Exception) {
-                _uiState.value = FavoriteLocationsUiState.Error("場所の削除に失敗しました: ${e.message}")
+                _uiState.value = FavoriteLocationsUiState.Error(
+                    type = FavoriteLocationErrorType.GENERIC_ERROR,
+                    message = "場所の削除に失敗しました: ${e.message}"
+                )
             }
         }
     }
@@ -159,7 +178,10 @@ class FavoriteLocationsViewModel @Inject constructor(
                     canAddMore = canAddMore
                 )
             } catch (e: Exception) {
-                _uiState.value = FavoriteLocationsUiState.Error("並び替えに失敗しました: ${e.message}")
+                _uiState.value = FavoriteLocationsUiState.Error(
+                    type = FavoriteLocationErrorType.GENERIC_ERROR,
+                    message = "並び替えに失敗しました: ${e.message}"
+                )
             }
         }
     }
@@ -206,7 +228,10 @@ class FavoriteLocationsViewModel @Inject constructor(
                 )
                 
             } catch (e: Exception) {
-                _uiState.value = FavoriteLocationsUiState.Error("天気データの更新に失敗しました: ${e.message}")
+                _uiState.value = FavoriteLocationsUiState.Error(
+                    type = FavoriteLocationErrorType.NETWORK_ERROR,
+                    message = "天気データの更新に失敗しました: ${e.message}"
+                )
             }
         }
     }
@@ -250,7 +275,10 @@ class FavoriteLocationsViewModel @Inject constructor(
             } catch (e: Exception) {
                 // Remove from loading set on error
                 _loadingLocationIds.value = _loadingLocationIds.value - locationId
-                _uiState.value = FavoriteLocationsUiState.Error("天気データの更新に失敗しました: ${e.message}")
+                _uiState.value = FavoriteLocationsUiState.Error(
+                    type = FavoriteLocationErrorType.NETWORK_ERROR,
+                    message = "天気データの更新に失敗しました: ${e.message}"
+                )
             }
         }
     }
@@ -283,7 +311,10 @@ class FavoriteLocationsViewModel @Inject constructor(
      */
     fun addCustomLocation(name: String, latitude: Double, longitude: Double) {
         if (mockFavoriteLocations.size >= maxLocations) {
-            _uiState.value = FavoriteLocationsUiState.Error("お気に入り場所は最大${maxLocations}箇所までです")
+            _uiState.value = FavoriteLocationsUiState.Error(
+                type = FavoriteLocationErrorType.MAX_LOCATIONS_REACHED,
+                message = "お気に入り場所は最大${maxLocations}箇所までです"
+            )
             return
         }
         
@@ -322,7 +353,10 @@ class FavoriteLocationsViewModel @Inject constructor(
                 )
                 
             } catch (e: Exception) {
-                _uiState.value = FavoriteLocationsUiState.Error("場所の追加に失敗しました: ${e.message}")
+                _uiState.value = FavoriteLocationsUiState.Error(
+                    type = FavoriteLocationErrorType.GENERIC_ERROR,
+                    message = "場所の追加に失敗しました: ${e.message}"
+                )
             }
         }
     }
@@ -346,7 +380,26 @@ sealed class FavoriteLocationsUiState {
     ) : FavoriteLocationsUiState()
     
     /**
-     * Error state with error message
+     * Empty state with no favorite locations
      */
-    data class Error(val message: String) : FavoriteLocationsUiState()
+    object Empty : FavoriteLocationsUiState()
+    
+    /**
+     * Error state with error type and message
+     */
+    data class Error(
+        val type: FavoriteLocationErrorType,
+        val message: String
+    ) : FavoriteLocationsUiState()
+}
+
+/**
+ * Error types for favorite locations
+ */
+enum class FavoriteLocationErrorType {
+    NETWORK_ERROR,
+    PERMISSION_ERROR,
+    LOCATION_DISABLED,
+    MAX_LOCATIONS_REACHED,
+    GENERIC_ERROR
 }

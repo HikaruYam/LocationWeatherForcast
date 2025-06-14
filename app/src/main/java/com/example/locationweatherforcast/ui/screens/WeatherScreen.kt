@@ -16,6 +16,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.locationweatherforcast.ui.components.*
 import com.example.locationweatherforcast.ui.viewmodel.WeatherUiState
 import com.example.locationweatherforcast.ui.viewmodel.WeatherViewModel
+import com.example.locationweatherforcast.ui.viewmodel.ErrorType
 
 /**
  * Main weather forecast screen
@@ -98,17 +99,61 @@ fun WeatherScreen(
                 }
                 
                 is WeatherUiState.Error -> {
-                    val errorMessage = (uiState as WeatherUiState.Error).message
+                    val errorState = uiState as WeatherUiState.Error
                     
-                    ErrorComponent(
-                        message = errorMessage,
-                        onRetry = { viewModel.fetchWeatherForecast() }
-                    )
+                    when (errorState.type) {
+                        ErrorType.NETWORK_ERROR -> {
+                            NetworkErrorComponent(
+                                onRetry = { viewModel.fetchWeatherForecast() }
+                            )
+                        }
+                        ErrorType.LOCATION_DISABLED -> {
+                            GpsDisabledErrorComponent(
+                                onEnableGps = {
+                                    // TODO: Open GPS settings
+                                },
+                                onManualLocation = {
+                                    // TODO: Add manual location input
+                                }
+                            )
+                        }
+                        ErrorType.LOCATION_NOT_FOUND -> {
+                            ErrorStateComponent(
+                                title = "位置情報が見つかりません",
+                                message = errorState.message,
+                                primaryAction = ErrorAction(
+                                    text = "再試行",
+                                    icon = Icons.Default.Refresh,
+                                    onClick = { viewModel.fetchWeatherForecast() }
+                                )
+                            )
+                        }
+                        ErrorType.API_ERROR -> {
+                            ApiErrorComponent(
+                                message = errorState.message,
+                                onRetry = { viewModel.fetchWeatherForecast() }
+                            )
+                        }
+                        ErrorType.GENERIC_ERROR -> {
+                            ErrorStateComponent(
+                                title = "エラーが発生しました",
+                                message = errorState.message,
+                                primaryAction = ErrorAction(
+                                    text = "再試行",
+                                    icon = Icons.Default.Refresh,
+                                    onClick = { viewModel.fetchWeatherForecast() }
+                                )
+                            )
+                        }
+                    }
                 }
                 
                 is WeatherUiState.PermissionRequired -> {
-                    PermissionRequestComponent(
-                        onRequestPermission = requestPermissions
+                    LocationPermissionErrorComponent(
+                        onRequestPermission = requestPermissions,
+                        onManualLocation = {
+                            // TODO: Add manual location input
+                        }
                     )
                 }
             }
