@@ -52,22 +52,37 @@ class WeatherViewModel @Inject constructor(
                 }
                 
                 if (!weatherRepository.isLocationEnabled()) {
-                    _uiState.value = WeatherUiState.Error("位置情報サービスが無効です。設定から有効にしてください。")
+                    _uiState.value = WeatherUiState.Error(
+                        type = ErrorType.LOCATION_DISABLED,
+                        message = "位置情報サービスが無効です。設定から有効にしてください。"
+                    )
                     return@launch
                 }
                 
                 val weatherData = weatherRepository.getWeatherForecast()
                 _uiState.value = WeatherUiState.Success(weatherData)
             } catch (e: LocationDisabledException) {
-                _uiState.value = WeatherUiState.Error("位置情報サービスが無効です。設定から有効にしてください。")
+                _uiState.value = WeatherUiState.Error(
+                    type = ErrorType.LOCATION_DISABLED,
+                    message = "位置情報サービスが無効です。設定から有効にしてください。"
+                )
             } catch (e: LocationNotFoundException) {
-                _uiState.value = WeatherUiState.Error("位置情報を取得できませんでした。")
+                _uiState.value = WeatherUiState.Error(
+                    type = ErrorType.LOCATION_NOT_FOUND,
+                    message = "位置情報を取得できませんでした。"
+                )
             } catch (e: SecurityException) {
                 _uiState.value = WeatherUiState.PermissionRequired
             } catch (e: IOException) {
-                _uiState.value = WeatherUiState.Error("ネットワークエラーが発生しました。インターネット接続を確認してください。")
+                _uiState.value = WeatherUiState.Error(
+                    type = ErrorType.NETWORK_ERROR,
+                    message = "ネットワークエラーが発生しました。インターネット接続を確認してください。"
+                )
             } catch (e: Exception) {
-                _uiState.value = WeatherUiState.Error("エラーが発生しました: ${e.message}")
+                _uiState.value = WeatherUiState.Error(
+                    type = ErrorType.GENERIC_ERROR,
+                    message = "エラーが発生しました: ${e.message}"
+                )
             }
         }
     }
@@ -98,12 +113,26 @@ sealed class WeatherUiState {
     data class Success(val data: WeatherData) : WeatherUiState()
     
     /**
-     * Error state with error message
+     * Error state with error type and message
      */
-    data class Error(val message: String) : WeatherUiState()
+    data class Error(
+        val type: ErrorType,
+        val message: String
+    ) : WeatherUiState()
     
     /**
      * Permission required state
      */
     object PermissionRequired : WeatherUiState()
+}
+
+/**
+ * Error types for better error handling
+ */
+enum class ErrorType {
+    NETWORK_ERROR,
+    LOCATION_DISABLED,
+    LOCATION_NOT_FOUND,
+    API_ERROR,
+    GENERIC_ERROR
 }
