@@ -76,6 +76,31 @@ fun FavoriteLocationsScreen(
     var showLocationInputDialog by remember { mutableStateOf(false) }
     var showQuickLocationDialog by remember { mutableStateOf(false) }
     var showAddMenu by remember { mutableStateOf(false) }
+    
+    // Memoized callbacks to prevent recomposition
+    val refreshCallback = remember(viewModel) {
+        { viewModel.refreshWeatherData() }
+    }
+    
+    val addCurrentLocationCallback = remember(viewModel) {
+        { viewModel.addCurrentLocation() }
+    }
+    
+    val deleteLocationCallback = remember(viewModel) {
+        { locationId: String -> viewModel.deleteLocation(locationId) }
+    }
+    
+    val reorderLocationsCallback = remember(viewModel) {
+        { reorderedList: List<FavoriteLocationWithWeather> -> viewModel.reorderLocations(reorderedList) }
+    }
+    
+    val refreshLocationCallback = remember(viewModel) {
+        { locationId: String -> viewModel.refreshLocationWeatherData(locationId) }
+    }
+    
+    val addCustomLocationCallback = remember(viewModel) {
+        { name: String, latitude: Double, longitude: Double -> viewModel.addCustomLocation(name, latitude, longitude) }
+    }
 
     Scaffold(
         topBar = {
@@ -92,7 +117,7 @@ fun FavoriteLocationsScreen(
                     fontWeight = FontWeight.Bold
                 )
                 IconButton(
-                    onClick = { viewModel.refreshWeatherData() }
+                    onClick = refreshCallback
                 ) {
                     Icon(
                         imageVector = Icons.Default.Refresh,
@@ -142,7 +167,7 @@ fun FavoriteLocationsScreen(
                 }
                 is FavoriteLocationsUiState.Empty -> {
                     EmptyFavoritesComponent(
-                        onAddCurrentLocation = { viewModel.addCurrentLocation() },
+                        onAddCurrentLocation = addCurrentLocationCallback,
                         onAddManualLocation = { showLocationInputDialog = true }
                     )
                 }
@@ -150,25 +175,17 @@ fun FavoriteLocationsScreen(
                     LocationsList(
                         locations = state.locations,
                         loadingLocationIds = loadingLocationIds,
-                        onDeleteLocation = { locationId ->
-                            viewModel.deleteLocation(locationId)
-                        },
-                        onReorderLocations = { reorderedList ->
-                            viewModel.reorderLocations(reorderedList)
-                        },
-                        onLocationClick = { locationId ->
-                            onNavigateToLocationDetail(locationId)
-                        },
-                        onRefreshLocation = { locationId ->
-                            viewModel.refreshLocationWeatherData(locationId)
-                        }
+                        onDeleteLocation = deleteLocationCallback,
+                        onReorderLocations = reorderLocationsCallback,
+                        onLocationClick = onNavigateToLocationDetail,
+                        onRefreshLocation = refreshLocationCallback
                     )
                 }
                 is FavoriteLocationsUiState.Error -> {
                     when (state.type) {
                         FavoriteLocationErrorType.NETWORK_ERROR -> {
                             NetworkErrorComponent(
-                                onRetry = { viewModel.refreshWeatherData() }
+                                onRetry = refreshCallback
                             )
                         }
                         FavoriteLocationErrorType.PERMISSION_ERROR -> {
@@ -210,10 +227,7 @@ fun FavoriteLocationsScreen(
                                 primaryAction = ErrorAction(
                                     text = "場所を削除してから追加",
                                     icon = Icons.Default.Refresh,
-                                    onClick = {
-                                        // Do nothing, just close error state
-                                        viewModel.refreshWeatherData()
-                                    }
+                                    onClick = refreshCallback
                                 )
                             )
                         }
@@ -224,7 +238,7 @@ fun FavoriteLocationsScreen(
                                 primaryAction = ErrorAction(
                                     text = "再試行",
                                     icon = Icons.Default.Refresh,
-                                    onClick = { viewModel.refreshWeatherData() }
+                                    onClick = refreshCallback
                                 )
                             )
                         }
@@ -243,7 +257,7 @@ fun FavoriteLocationsScreen(
             text = { Text("現在地を追加") },
             onClick = {
                 showAddMenu = false
-                viewModel.addCurrentLocation()
+                addCurrentLocationCallback()
             },
             leadingIcon = {
                 Icon(
@@ -286,7 +300,7 @@ fun FavoriteLocationsScreen(
             onDismiss = { showLocationInputDialog = false },
             onConfirm = { name, latitude, longitude ->
                 showLocationInputDialog = false
-                viewModel.addCustomLocation(name, latitude, longitude)
+                addCustomLocationCallback(name, latitude, longitude)
             }
         )
     }
@@ -297,7 +311,7 @@ fun FavoriteLocationsScreen(
             onDismiss = { showQuickLocationDialog = false },
             onSelectLocation = { name, latitude, longitude ->
                 showQuickLocationDialog = false
-                viewModel.addCustomLocation(name, latitude, longitude)
+                addCustomLocationCallback(name, latitude, longitude)
             }
         )
     }
@@ -319,13 +333,17 @@ private fun LocationsList(
     onRefreshLocation: (String) -> Unit
 ) {
     val listState = rememberLazyListState()
+    
+    // Memoized drag drop state to prevent recomposition
     val dragDropState = rememberDragDropState(
         lazyListState = listState,
-        onMove = { fromIndex, toIndex ->
-            val mutableList = locations.toMutableList()
-            val item = mutableList.removeAt(fromIndex)
-            mutableList.add(toIndex, item)
-            onReorderLocations(mutableList)
+        onMove = remember(onReorderLocations) {
+            { fromIndex, toIndex ->
+                val mutableList = locations.toMutableList()
+                val item = mutableList.removeAt(fromIndex)
+                mutableList.add(toIndex, item)
+                onReorderLocations(mutableList)
+            }
         }
     )
 
@@ -341,15 +359,22 @@ private fun LocationsList(
             items = locations,
             key = { _, location -> location.id }
         ) { index, location ->
+            // Memoized callbacks for each location card
+            val deleteCallback = remember(location.id, onDeleteLocation) {
+                { onDeleteLocation(location.id) }
+            }
+            val cardClickCallback = remember(location.id, onLocationClick) {
+                { onLocationClick(location.id) }
+            }
+            val refreshCallback = remember(location.id, onRefreshLocation) {
+                { onRefreshLocation(location.id) }
+            }
+            
             LocationCard(
                 location = location,
-                onDeleteClick = { onDeleteLocation(location.id) },
-                onCardClick = {
-                    onLocationClick(location.id)
-                },
-                onRefreshClick = {
-                    onRefreshLocation(location.id)
-                },
+                onDeleteClick = deleteCallback,
+                onCardClick = cardClickCallback,
+                onRefreshClick = refreshCallback,
                 isDragEnabled = true,
                 isLoading = loadingLocationIds.contains(location.id),
                 modifier = Modifier.draggedItem(dragDropState, index)

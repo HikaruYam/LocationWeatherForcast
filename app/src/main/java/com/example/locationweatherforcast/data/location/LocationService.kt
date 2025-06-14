@@ -14,6 +14,7 @@ import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeout
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
@@ -27,6 +28,14 @@ class LocationService @Inject constructor(@ApplicationContext private val contex
     
     private val fusedLocationClient: FusedLocationProviderClient = 
         LocationServices.getFusedLocationProviderClient(context)
+    
+    // Performance: Location request timeout to prevent hanging requests
+    private val locationTimeoutMs = 15_000L // 15 seconds
+    
+    // Memory leak prevention: Cache for location manager to avoid repeated system service calls
+    private val locationManager by lazy { 
+        context.getSystemService(Context.LOCATION_SERVICE) as LocationManager 
+    }
     
     /**
      * Check if location permissions are granted
@@ -48,7 +57,6 @@ class LocationService @Inject constructor(@ApplicationContext private val contex
      * @return true if location services are enabled, false otherwise
      */
     fun isLocationEnabled(): Boolean {
-        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
     }
@@ -69,31 +77,99 @@ class LocationService @Inject constructor(@ApplicationContext private val contex
             throw LocationDisabledException("Location services are disabled")
         }
         
-        return suspendCancellableCoroutine { continuation ->
-            val cancellationToken = CancellationTokenSource()
-            
-            continuation.invokeOnCancellation {
-                cancellationToken.cancel()
-            }
-            
-            fusedLocationClient.getCurrentLocation(
-                Priority.PRIORITY_HIGH_ACCURACY,
-                cancellationToken.token
-            ).addOnSuccessListener { location: Location? ->
-                if (location != null) {
-                    continuation.resume(
-                        LocationData(
-                            latitude = location.latitude,
-                            longitude = location.longitude
-                        )
-                    )
-                } else {
-                    continuation.resumeWithException(
-                        LocationNotFoundException("Could not get current location")
-                    )
+        // Performance & Memory: Add timeout to prevent hanging location requests
+        return withTimeout(locationTimeoutMs) {
+            suspendCancellableCoroutine { continuation ->
+                val cancellationToken = CancellationTokenSource()
+                
+                // Memory leak prevention: Proper cleanup on cancellation
+                continuation.invokeOnCancellation {
+                    try {
+                        cancellationToken.cancel()
+                    } catch (e: Exception) {
+                        // Ignore cleanup errors
+                    }
                 }
-            }.addOnFailureListener { exception ->
-                continuation.resumeWithException(exception)
+                
+                val locationTask = fusedLocationClient.getCurrentLocation(
+                    Priority.PRIORITY_HIGH_ACCURACY,
+                    cancellationToken.token
+                )
+                
+                locationTask.addOnSuccessListener { location: Location? ->
+                    if (continuation.isActive) {
+                        if (location != null) {
+                            continuation.resume(
+                                LocationData(
+                                    latitude = location.latitude,
+                                    longitude = location.longitude
+                                )
+                            )
+                        } else {
+                            continuation.resumeWithException(
+                                LocationNotFoundException("Could not get current location")
+                            )
+                        }
+                    }
+                }.addOnFailureListener { exception ->
+                    if (continuation.isActive) {
+                        continuation.resumeWithException(exception)
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * Performance: Get location with custom timeout
+     */
+    @SuppressLint("MissingPermission")
+    suspend fun getCurrentLocationWithTimeout(timeoutMs: Long): LocationData {
+        if (!hasLocationPermission()) {
+            throw SecurityException("Location permission not granted")
+        }
+        
+        if (!isLocationEnabled()) {
+            throw LocationDisabledException("Location services are disabled")
+        }
+        
+        return withTimeout(timeoutMs) {
+            suspendCancellableCoroutine { continuation ->
+                val cancellationToken = CancellationTokenSource()
+                
+                continuation.invokeOnCancellation {
+                    try {
+                        cancellationToken.cancel()
+                    } catch (e: Exception) {
+                        // Ignore cleanup errors
+                    }
+                }
+                
+                val locationTask = fusedLocationClient.getCurrentLocation(
+                    Priority.PRIORITY_BALANCED_POWER_ACCURACY, // Use balanced priority for custom timeout
+                    cancellationToken.token
+                )
+                
+                locationTask.addOnSuccessListener { location: Location? ->
+                    if (continuation.isActive) {
+                        if (location != null) {
+                            continuation.resume(
+                                LocationData(
+                                    latitude = location.latitude,
+                                    longitude = location.longitude
+                                )
+                            )
+                        } else {
+                            continuation.resumeWithException(
+                                LocationNotFoundException("Could not get current location")
+                            )
+                        }
+                    }
+                }.addOnFailureListener { exception ->
+                    if (continuation.isActive) {
+                        continuation.resumeWithException(exception)
+                    }
+                }
             }
         }
     }

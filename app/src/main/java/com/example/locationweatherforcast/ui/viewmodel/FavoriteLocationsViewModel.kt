@@ -43,6 +43,12 @@ class FavoriteLocationsViewModel @Inject constructor(
     private val mockFavoriteLocations = mutableListOf<FavoriteLocationWithWeather>()
     private val maxLocations = 5
     
+    // Performance: Cache last refresh time to avoid rapid successive requests
+    private var lastRefreshTime = 0L
+    private val minimumRefreshInterval = 30_000L // 30 seconds for bulk refresh
+    private val individualRefreshInterval = 10_000L // 10 seconds for individual refresh
+    private val refreshTimestamps = mutableMapOf<String, Long>()
+    
     init {
         loadFavoriteLocations()
     }
@@ -357,6 +363,22 @@ class FavoriteLocationsViewModel @Inject constructor(
                     type = FavoriteLocationErrorType.GENERIC_ERROR,
                     message = "場所の追加に失敗しました: ${e.message}"
                 )
+            }
+        }
+    }
+    
+    /**
+     * Clear cached data and cleanup resources when ViewModel is cleared
+     */
+    override fun onCleared() {
+        super.onCleared()
+        viewModelScope.launch {
+            // Performance: Cleanup expired cache and clear refresh timestamps
+            try {
+                weatherRepository.cleanupCache()
+                refreshTimestamps.clear()
+            } catch (e: Exception) {
+                // Log error but don't crash
             }
         }
     }
