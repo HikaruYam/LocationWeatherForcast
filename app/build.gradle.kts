@@ -95,10 +95,21 @@ dependencies {
     
     // Testing
     testImplementation(libs.junit)
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+    testImplementation("androidx.arch.core:core-testing:2.2.0")
+    testImplementation("io.mockk:mockk:1.13.12")
+    testImplementation("io.mockk:mockk-android:1.13.12")
+    testImplementation("app.cash.turbine:turbine:1.0.0")
+    testImplementation("com.google.dagger:hilt-android-testing:2.50")
+    kaptTest("com.google.dagger:hilt-compiler:2.50")
+    
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
+    androidTestImplementation("com.google.dagger:hilt-android-testing:2.50")
+    kaptAndroidTest("com.google.dagger:hilt-compiler:2.50")
+    
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 }
