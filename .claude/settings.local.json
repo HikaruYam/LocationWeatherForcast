@@ -28,7 +28,12 @@
       "Bash(gh pr review:*)",
       "Bash(gh pr merge:*)",
       "Bash(git stash:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(gh pr:*)",
+      "Bash(rm:*)",
+      "Bash(gh pr comment:*)"
     ],
     "deny": []
   }

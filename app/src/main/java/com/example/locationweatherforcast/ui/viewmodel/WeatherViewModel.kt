@@ -30,19 +30,62 @@ class WeatherViewModel @Inject constructor(
     private val _permissionState = MutableStateFlow(weatherRepository.hasLocationPermission())
     val permissionState: StateFlow<Boolean> = _permissionState.asStateFlow()
     
+    // Performance: Cache last fetch time to avoid rapid successive requests
+    private var lastFetchTime = 0L
+    private val minimumFetchInterval = 10_000L // 10 seconds
+    
     init {
         if (_permissionState.value) {
-            fetchWeatherForecast()
+            // Performance: Use lazy loading on init to speed up app startup
+            viewModelScope.launch {
+                // Small delay to allow UI to render first
+                kotlinx.coroutines.delay(100)
+                fetchWeatherForecast()
+            }
         } else {
             _uiState.value = WeatherUiState.PermissionRequired
         }
     }
     
     /**
-     * Fetch weather forecast data
+     * Force refresh weather data (ignores cache)
      */
-    fun fetchWeatherForecast() {
-        _uiState.value = WeatherUiState.Loading
+    fun refreshWeatherForecast() {
+        fetchWeatherForecast(forceRefresh = true)
+    }
+    
+    /**
+     * Clear cached data and cleanup resources when ViewModel is cleared
+     */
+    override fun onCleared() {
+        super.onCleared()
+        viewModelScope.launch {
+            // Cleanup expired cache when ViewModel is destroyed
+            try {
+                weatherRepository.cleanupCache()
+            } catch (e: Exception) {
+                // Log error but don't crash
+            }
+        }
+    }
+    
+    /**
+     * Fetch weather forecast data with debouncing to prevent rapid successive requests
+     */
+    fun fetchWeatherForecast(forceRefresh: Boolean = false) {
+        val currentTime = System.currentTimeMillis()
+        
+        // Performance: Skip request if too recent (unless forced)
+        if (!forceRefresh && (currentTime - lastFetchTime) < minimumFetchInterval) {
+            return
+        }
+        
+        lastFetchTime = currentTime
+        
+        // Only show loading if we don't have data or forced refresh
+        if (_uiState.value !is WeatherUiState.Success || forceRefresh) {
+            _uiState.value = WeatherUiState.Loading
+        }
         
         viewModelScope.launch {
             try {

@@ -15,12 +15,14 @@ interface WeatherCacheDao {
     
     /**
      * Get cached weather data for a specific location and date
+     * Performance: Uses composite index on locationKey and date
      */
-    @Query("SELECT * FROM weather_cache WHERE locationKey = :locationKey AND date = :date")
+    @Query("SELECT * FROM weather_cache WHERE locationKey = :locationKey AND date = :date LIMIT 1")
     suspend fun getCachedWeather(locationKey: String, date: String): WeatherCache?
     
     /**
      * Get all cached weather data for a location
+     * Performance: Uses index on locationKey
      */
     @Query("SELECT * FROM weather_cache WHERE locationKey = :locationKey ORDER BY date ASC")
     suspend fun getAllCachedWeatherForLocation(locationKey: String): List<WeatherCache>
@@ -63,14 +65,34 @@ interface WeatherCacheDao {
     
     /**
      * Delete expired cache entries (older than specified timestamp)
+     * Performance: Uses index on expiresAt for efficient cleanup
      */
     @Query("DELETE FROM weather_cache WHERE expiresAt < :currentTime")
     suspend fun deleteExpiredCache(currentTime: String)
     
     /**
-     * Get cache entries that need refresh (stale but not expired)
+     * Batch delete cache entries by location keys for better performance
      */
-    @Query("SELECT * FROM weather_cache WHERE cachedAt < :staleThreshold AND cachedAt > :expiredThreshold")
+    @Query("DELETE FROM weather_cache WHERE locationKey IN (:locationKeys)")
+    suspend fun deleteCacheByLocationKeys(locationKeys: List<String>)
+    
+    /**
+     * Get fresh cache entries (for performance monitoring)
+     */
+    @Query("SELECT * FROM weather_cache WHERE cachedAt > :freshThreshold ORDER BY cachedAt DESC")
+    suspend fun getFreshCache(freshThreshold: String): List<WeatherCache>
+    
+    /**
+     * Batch update cache timestamps for performance
+     */
+    @Query("UPDATE weather_cache SET lastUpdated = :timestamp WHERE locationKey IN (:locationKeys)")
+    suspend fun batchUpdateLastUpdated(locationKeys: List<String>, timestamp: String)
+    
+    /**
+     * Get cache entries that need refresh (stale but not expired)
+     * Performance: Uses index on cachedAt for efficient timestamp filtering
+     */
+    @Query("SELECT * FROM weather_cache WHERE cachedAt < :staleThreshold AND cachedAt > :expiredThreshold ORDER BY cachedAt ASC")
     suspend fun getStaleCache(staleThreshold: String, expiredThreshold: String): List<WeatherCache>
     
     /**

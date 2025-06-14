@@ -41,14 +41,21 @@ fun WeatherScreen(
         }
     }
     
-    // Request permissions function
-    val requestPermissions = {
-        permissionLauncher.launch(
-            arrayOf(
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_COARSE_LOCATION
+    // Request permissions function - memoized to prevent recomposition
+    val requestPermissions = remember {
+        {
+            permissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
             )
-        )
+        }
+    }
+    
+    // Refresh action - memoized to prevent recomposition
+    val refreshAction = remember(viewModel) {
+        { viewModel.fetchWeatherForecast() }
     }
     
     Scaffold(
@@ -56,7 +63,7 @@ fun WeatherScreen(
             TopAppBar(
                 title = { Text("明日の天気予報") },
                 actions = {
-                    IconButton(onClick = { viewModel.fetchWeatherForecast() }) {
+                    IconButton(onClick = refreshAction) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "更新"
@@ -87,12 +94,17 @@ fun WeatherScreen(
                 is WeatherUiState.Success -> {
                     val weatherData = (uiState as WeatherUiState.Success).data
                     
+                    // Memoized weather content to prevent unnecessary recomposition
+                    val weatherContent = remember(weatherData) {
+                        weatherData
+                    }
+                    
                     Column(
                         modifier = Modifier.fillMaxSize(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         WeatherCard(
-                            weatherData = weatherData,
+                            weatherData = weatherContent,
                             modifier = Modifier.padding(top = 16.dp)
                         )
                     }
@@ -104,7 +116,7 @@ fun WeatherScreen(
                     when (errorState.type) {
                         ErrorType.NETWORK_ERROR -> {
                             NetworkErrorComponent(
-                                onRetry = { viewModel.fetchWeatherForecast() }
+                                onRetry = refreshAction
                             )
                         }
                         ErrorType.LOCATION_DISABLED -> {
@@ -124,14 +136,14 @@ fun WeatherScreen(
                                 primaryAction = ErrorAction(
                                     text = "再試行",
                                     icon = Icons.Default.Refresh,
-                                    onClick = { viewModel.fetchWeatherForecast() }
+                                    onClick = refreshAction
                                 )
                             )
                         }
                         ErrorType.API_ERROR -> {
                             ApiErrorComponent(
                                 message = errorState.message,
-                                onRetry = { viewModel.fetchWeatherForecast() }
+                                onRetry = refreshAction
                             )
                         }
                         ErrorType.GENERIC_ERROR -> {
@@ -141,7 +153,7 @@ fun WeatherScreen(
                                 primaryAction = ErrorAction(
                                     text = "再試行",
                                     icon = Icons.Default.Refresh,
-                                    onClick = { viewModel.fetchWeatherForecast() }
+                                    onClick = refreshAction
                                 )
                             )
                         }

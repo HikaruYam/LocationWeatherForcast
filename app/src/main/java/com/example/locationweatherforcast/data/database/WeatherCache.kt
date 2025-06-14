@@ -7,10 +7,29 @@ import java.time.LocalDateTime
 
 /**
  * Weather cache entity for storing weather data with expiration
+ * Includes performance indices for common query patterns
  */
 @Entity(
     tableName = "weather_cache",
-    primaryKeys = ["locationKey", "date"]
+    primaryKeys = ["locationKey", "date"],
+    indices = [
+        androidx.room.Index(
+            value = ["locationKey"],
+            name = "idx_weather_cache_location"
+        ),
+        androidx.room.Index(
+            value = ["cachedAt"],
+            name = "idx_weather_cache_cached_at"
+        ),
+        androidx.room.Index(
+            value = ["expiresAt"],
+            name = "idx_weather_cache_expires_at"
+        ),
+        androidx.room.Index(
+            value = ["locationKey", "date"],
+            name = "idx_weather_cache_location_date"
+        )
+    ]
 )
 data class WeatherCache(
     val locationKey: String, // Composite key: "${latitude}_${longitude}"
