@@ -11,6 +11,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
@@ -24,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -39,10 +44,39 @@ fun LocationCard(
     isLoading: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    // Create comprehensive accessibility description
+    val cardDescription = buildString {
+        append("場所: ${location.name}")
+        if (location.weatherData != null) {
+            append(", 天気: ${location.weatherData.getWeatherDescription()}")
+            append(", 最高気温: ${location.weatherData.temperatureMax.toInt()}度")
+            append(", 最低気温: ${location.weatherData.temperatureMin.toInt()}度")
+        } else {
+            append(", 天気データなし")
+        }
+        if (isLoading) {
+            append(", 天気データ読み込み中")
+        }
+        append(", タップして詳細を表示")
+    }
+
+    val cardStateDescription = when {
+        isLoading -> "読み込み中"
+        location.weatherData != null -> "天気データ利用可能"
+        else -> "天気データなし"
+    }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { onCardClick() },
+            .clickable(
+                role = Role.Button,
+                onClickLabel = "${location.name}の詳細を表示"
+            ) { onCardClick() }
+            .semantics {
+                contentDescription = cardDescription
+                stateDescription = cardStateDescription
+            },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -59,9 +93,13 @@ fun LocationCard(
             if (isDragEnabled) {
                 Icon(
                     imageVector = Icons.Default.Menu,
-                    contentDescription = "並び替え",
+                    contentDescription = "${location.name}を長押しして並び替え",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier
+                        .size(20.dp)
+                        .semantics {
+                            contentDescription = "${location.name}の位置を変更するには長押ししてドラッグしてください"
+                        }
                 )
                 Spacer(modifier = Modifier.width(8.dp))
             }
@@ -103,28 +141,45 @@ fun LocationCard(
             ) {
                 if (isLoading) {
                     PulsingLoadingIndicator(
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier
+                            .size(32.dp)
+                            .semantics {
+                                contentDescription = "${location.name}の天気データを読み込んでいます"
+                            }
                     )
                 } else {
                     WeatherIcon(
                         weatherCode = location.weatherData?.weatherCode ?: 0,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier
+                            .size(32.dp)
+                            .semantics {
+                                contentDescription = location.weatherData?.getWeatherDescription() ?: "天気情報なし"
+                            }
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Column(
-                    horizontalAlignment = Alignment.End
+                    horizontalAlignment = Alignment.End,
+                    modifier = Modifier.semantics(mergeDescendants = true) {
+                        contentDescription = if (location.weatherData != null) {
+                            "最高気温 ${location.weatherData.temperatureMax.toInt()}度, 最低気温 ${location.weatherData.temperatureMin.toInt()}度"
+                        } else {
+                            "気温データなし"
+                        }
+                    }
                 ) {
                     Text(
                         text = "${location.weatherData?.temperatureMax?.toInt() ?: "--"}°C",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clearAndSetSemantics { }
                     )
                     if (location.weatherData != null) {
                         Text(
                             text = "${location.weatherData.temperatureMin.toInt()}°C",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.clearAndSetSemantics { }
                         )
                     }
                 }
@@ -137,11 +192,15 @@ fun LocationCard(
                 // Refresh button
                 IconButton(
                     onClick = onRefreshClick,
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier
+                        .size(40.dp)
+                        .semantics {
+                            contentDescription = "${location.name}の天気データを更新"
+                        }
                 ) {
                     Icon(
                         imageVector = Icons.Default.Refresh,
-                        contentDescription = "天気データを更新",
+                        contentDescription = null, // Parent handles description
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(18.dp)
                     )
@@ -150,11 +209,15 @@ fun LocationCard(
                 // Delete button
                 IconButton(
                     onClick = onDeleteClick,
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier
+                        .size(40.dp)
+                        .semantics {
+                            contentDescription = "${location.name}を削除"
+                        }
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = "削除",
+                        contentDescription = null, // Parent handles description
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(18.dp)
                     )
@@ -170,10 +233,27 @@ fun SimpleLocationCard(
     onCardClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val cardDescription = buildString {
+        append("場所: ${location.name}")
+        if (location.weatherData != null) {
+            append(", 天気: ${location.weatherData.getWeatherDescription()}")
+            append(", 最高気温: ${location.weatherData.temperatureMax.toInt()}度")
+        } else {
+            append(", 天気データなし")
+        }
+        append(", タップして選択")
+    }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { onCardClick() },
+            .clickable(
+                role = Role.Button,
+                onClickLabel = "${location.name}を選択"
+            ) { onCardClick() }
+            .semantics {
+                contentDescription = cardDescription
+            },
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -209,17 +289,27 @@ fun SimpleLocationCard(
             Spacer(modifier = Modifier.width(8.dp))
             
             Row(
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.semantics(mergeDescendants = true) {
+                    contentDescription = if (location.weatherData != null) {
+                        "${location.weatherData.getWeatherDescription()}, ${location.weatherData.temperatureMax.toInt()}度"
+                    } else {
+                        "天気データなし"
+                    }
+                }
             ) {
                 WeatherIcon(
                     weatherCode = location.weatherData?.weatherCode ?: 0,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clearAndSetSemantics { }
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "${location.weatherData?.temperatureMax?.toInt() ?: "--"}°",
                     style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clearAndSetSemantics { }
                 )
             }
         }

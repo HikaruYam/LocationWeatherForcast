@@ -2,6 +2,8 @@ package com.example.locationweatherforcast.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -10,7 +12,30 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 
 /**
- * Weather icon component based on weather code
+ * Get Japanese description for weather code
+ */
+fun getWeatherDescription(weatherCode: Int): String {
+    return when (weatherCode) {
+        0 -> "快晴"
+        1 -> "晴れ"
+        2 -> "一部曇り"
+        3 -> "曇り"
+        45, 48 -> "霧"
+        51, 53, 55 -> "小雨"
+        56, 57 -> "凍る小雨"
+        61, 63, 65 -> "雨"
+        66, 67 -> "凍る雨"
+        71, 73, 75, 77 -> "雪"
+        80, 81, 82 -> "にわか雨"
+        85, 86 -> "にわか雪"
+        95 -> "雷雨"
+        96, 99 -> "雹を伴う雷雨"
+        else -> "不明な天気"
+    }
+}
+
+/**
+ * Weather icon component based on weather code with accessibility support
  */
 @Composable
 fun WeatherIcon(
@@ -18,48 +43,53 @@ fun WeatherIcon(
     modifier: Modifier = Modifier,
     tint: Color = Color.Unspecified
 ) {
+    val weatherDescription = getWeatherDescription(weatherCode)
+    val accessibilityModifier = modifier.semantics {
+        contentDescription = "天気アイコン: $weatherDescription"
+    }
+    
     when (weatherCode) {
         // Clear sky
-        0 -> SunnyIcon(modifier = modifier, tint = tint)
+        0 -> SunnyIcon(modifier = accessibilityModifier, tint = tint)
         
         // Mainly clear, partly cloudy, and overcast
-        1, 2, 3 -> CloudyIcon(modifier = modifier, tint = tint)
+        1, 2, 3 -> CloudyIcon(modifier = accessibilityModifier, tint = tint)
         
         // Fog and depositing rime fog
-        45, 48 -> FogIcon(modifier = modifier, tint = tint)
+        45, 48 -> FogIcon(modifier = accessibilityModifier, tint = tint)
         
         // Drizzle: Light, moderate, and dense intensity
-        51, 53, 55 -> DrizzleIcon(modifier = modifier, tint = tint)
+        51, 53, 55 -> DrizzleIcon(modifier = accessibilityModifier, tint = tint)
         
         // Freezing Drizzle: Light and dense intensity
-        56, 57 -> FreezingRainIcon(modifier = modifier, tint = tint)
+        56, 57 -> FreezingRainIcon(modifier = accessibilityModifier, tint = tint)
         
         // Rain: Slight, moderate and heavy intensity
-        61, 63, 65 -> RainIcon(modifier = modifier, tint = tint)
+        61, 63, 65 -> RainIcon(modifier = accessibilityModifier, tint = tint)
         
         // Freezing Rain: Light and heavy intensity
-        66, 67 -> FreezingRainIcon(modifier = modifier, tint = tint)
+        66, 67 -> FreezingRainIcon(modifier = accessibilityModifier, tint = tint)
         
         // Snow fall: Slight, moderate, and heavy intensity
-        71, 73, 75 -> SnowIcon(modifier = modifier, tint = tint)
+        71, 73, 75 -> SnowIcon(modifier = accessibilityModifier, tint = tint)
         
         // Snow grains
-        77 -> SnowIcon(modifier = modifier, tint = tint)
+        77 -> SnowIcon(modifier = accessibilityModifier, tint = tint)
         
         // Rain showers: Slight, moderate, and violent
-        80, 81, 82 -> RainIcon(modifier = modifier, tint = tint)
+        80, 81, 82 -> RainIcon(modifier = accessibilityModifier, tint = tint)
         
         // Snow showers slight and heavy
-        85, 86 -> SnowIcon(modifier = modifier, tint = tint)
+        85, 86 -> SnowIcon(modifier = accessibilityModifier, tint = tint)
         
         // Thunderstorm: Slight or moderate
-        95 -> ThunderstormIcon(modifier = modifier, tint = tint)
+        95 -> ThunderstormIcon(modifier = accessibilityModifier, tint = tint)
         
         // Thunderstorm with slight and heavy hail
-        96, 99 -> ThunderstormWithHailIcon(modifier = modifier, tint = tint)
+        96, 99 -> ThunderstormWithHailIcon(modifier = accessibilityModifier, tint = tint)
         
         // Default
-        else -> UnknownIcon(modifier = modifier, tint = tint)
+        else -> UnknownIcon(modifier = accessibilityModifier, tint = tint)
     }
 }
 

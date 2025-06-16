@@ -4,6 +4,9 @@ import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
@@ -11,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.locationweatherforcast.ui.components.*
@@ -61,12 +65,24 @@ fun WeatherScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("明日の天気予報") },
+                title = { 
+                    Text(
+                        "明日の天気予報",
+                        modifier = Modifier.semantics {
+                            contentDescription = "明日の天気予報画面"
+                        }
+                    ) 
+                },
                 actions = {
-                    IconButton(onClick = refreshAction) {
+                    IconButton(
+                        onClick = refreshAction,
+                        modifier = Modifier.semantics {
+                            contentDescription = "天気データを更新"
+                        }
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
-                            contentDescription = "更新"
+                            contentDescription = null, // Parent handles description
                         )
                     }
                 }
@@ -82,11 +98,20 @@ fun WeatherScreen(
             when (uiState) {
                 is WeatherUiState.Loading -> {
                     Column(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .semantics {
+                                contentDescription = "天気データを読み込み中です"
+                                stateDescription = "読み込み中"
+                            },
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         WeatherCardSkeleton(
-                            modifier = Modifier.padding(top = 16.dp)
+                            modifier = Modifier
+                                .padding(top = 16.dp)
+                                .semantics {
+                                    contentDescription = "天気カードを読み込んでいます"
+                                }
                         )
                     }
                 }
