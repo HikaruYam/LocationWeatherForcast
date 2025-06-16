@@ -33,7 +33,9 @@
       "WebFetch(domain:github.com)",
       "Bash(gh pr:*)",
       "Bash(rm:*)",
-      "Bash(gh pr comment:*)"
+      "Bash(gh pr comment:*)",
+      "Bash(mv:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }
