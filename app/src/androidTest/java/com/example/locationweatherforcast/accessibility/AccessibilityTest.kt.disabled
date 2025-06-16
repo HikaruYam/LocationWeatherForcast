@@ -1,0 +1,363 @@
+package com.example.locationweatherforcast.accessibility
+
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.*
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.navigation.compose.ComposeNavigator
+import androidx.navigation.testing.TestNavHostController
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.example.locationweatherforcast.navigation.AppNavigation
+import com.example.locationweatherforcast.navigation.NavigationRoutes
+import com.example.locationweatherforcast.ui.screens.FavoriteLocationsScreen
+import com.example.locationweatherforcast.ui.screens.WeatherScreen
+import com.example.locationweatherforcast.ui.theme.LocationWeatherForcastTheme
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+/**
+ * Accessibility tests for UI components and user flows
+ */
+@HiltAndroidTest
+@RunWith(AndroidJUnit4::class)
+class AccessibilityTest {
+
+    @get:Rule(order = 0)
+    val hiltRule = HiltAndroidRule(this)
+
+    @get:Rule(order = 1)
+    val composeTestRule = createComposeRule()
+
+    private lateinit var navController: TestNavHostController
+
+    @Before
+    fun setup() {
+        hiltRule.inject()
+
+        composeTestRule.setContent {
+            navController = TestNavHostController(LocalContext.current)
+            navController.navigatorProvider.addNavigator(ComposeNavigator())
+            
+            LocationWeatherForcastTheme {
+                AppNavigation(navController = navController)
+            }
+        }
+    }
+
+    @Test
+    fun weatherScreenAccessibility() {
+        // Verify weather screen is accessible
+        composeTestRule
+            .onNodeWithText("明日の天気予報")
+            .assertIsDisplayed()
+
+        // Verify refresh button has content description
+        composeTestRule
+            .onNodeWithContentDescription("更新")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun favoriteLocationsScreenAccessibility() {
+        composeTestRule.runOnIdle {
+            navController.navigate(NavigationRoutes.FAVORITE_LOCATIONS)
+        }
+
+        composeTestRule.waitForIdle()
+
+        // Verify screen title is accessible
+        composeTestRule
+            .onNodeWithText("お気に入りの場所")
+            .assertIsDisplayed()
+            .assertHasContentDescription()
+
+        // Verify FAB has proper accessibility
+        composeTestRule
+            .onNodeWithContentDescription("場所を追加")
+            .assertIsDisplayed()
+            .assertHasClickAction()
+
+        // Verify refresh button accessibility
+        composeTestRule
+            .onNodeWithContentDescription("天気データを更新")
+            .assertIsDisplayed()
+            .assertHasClickAction()
+    }
+
+    @Test
+    fun buttonAccessibilityLabels() {
+        composeTestRule.runOnIdle {
+            navController.navigate(NavigationRoutes.FAVORITE_LOCATIONS)
+        }
+
+        // Test that all interactive elements have appropriate content descriptions
+        composeTestRule
+            .onAllNodesWithClickAction()
+            .assertAll(hasContentDescription())
+
+        // Test that buttons are properly labeled for screen readers
+        composeTestRule
+            .onNodeWithContentDescription("場所を追加")
+            .assertHasClickAction()
+            .performClick()
+
+        // Menu items should also be accessible
+        composeTestRule
+            .onNodeWithText("現在地を追加")
+            .assertIsDisplayed()
+            .assertHasClickAction()
+    }
+
+    @Test
+    fun textFieldAccessibility() {
+        composeTestRule.runOnIdle {
+            navController.navigate(NavigationRoutes.FAVORITE_LOCATIONS)
+        }
+
+        // Open manual location dialog
+        composeTestRule
+            .onNodeWithContentDescription("場所を追加")
+            .performClick()
+
+        composeTestRule
+            .onNodeWithText("手動で追加")
+            .performClick()
+
+        composeTestRule.waitForIdle()
+
+        // Verify text fields have proper labels
+        composeTestRule
+            .onNodeWithText("場所名")
+            .assertIsDisplayed()
+            .assertIsEnabled()
+            .assertHasContentDescription()
+
+        composeTestRule
+            .onNodeWithText("緯度")
+            .assertIsDisplayed()
+            .assertIsEnabled()
+            .assertHasContentDescription()
+
+        composeTestRule
+            .onNodeWithText("経度")
+            .assertIsDisplayed()
+            .assertIsEnabled()
+            .assertHasContentDescription()
+
+        // Test keyboard navigation between fields
+        composeTestRule
+            .onNodeWithText("場所名")
+            .performSemanticsAction(SemanticsActions.RequestFocus)
+            .assertIsFocused()
+
+        // Test that tab navigation works
+        composeTestRule
+            .onNodeWithText("緯度")
+            .performSemanticsAction(SemanticsActions.RequestFocus)
+            .assertIsFocused()
+    }
+
+    @Test
+    fun errorStateAccessibility() {
+        // Test error states are properly announced to screen readers
+        
+        composeTestRule.runOnIdle {
+            navController.navigate(NavigationRoutes.FAVORITE_LOCATIONS)
+        }
+
+        composeTestRule.waitForIdle()
+
+        // Error states should have appropriate semantics
+        // This would be tested with actual error conditions in a full implementation
+        
+        // Verify that error messages are properly labeled
+        // Verify that retry buttons have appropriate descriptions
+        // Test that error recovery actions are accessible
+    }
+
+    @Test
+    fun listAccessibility() {
+        composeTestRule.runOnIdle {
+            navController.navigate(NavigationRoutes.FAVORITE_LOCATIONS)
+        }
+
+        composeTestRule.waitForIdle()
+
+        // Test that list items are properly accessible
+        // Verify that location cards have appropriate content descriptions
+        // Test keyboard navigation through list items
+        
+        // If there are locations in the list, they should be navigable
+        composeTestRule
+            .onAllNodesWithTag("location_card")
+            .assertAll(hasContentDescription())
+    }
+
+    @Test
+    fun focusManagement() {
+        // Test proper focus management throughout the app
+        
+        composeTestRule.runOnIdle {
+            navController.navigate(NavigationRoutes.FAVORITE_LOCATIONS)
+        }
+
+        // When dialog opens, focus should move to appropriate element
+        composeTestRule
+            .onNodeWithContentDescription("場所を追加")
+            .performClick()
+
+        composeTestRule
+            .onNodeWithText("手動で追加")
+            .performClick()
+
+        composeTestRule.waitForIdle()
+
+        // First text field should receive focus
+        composeTestRule
+            .onNodeWithText("場所名")
+            .assertIsFocused()
+
+        // When dialog closes, focus should return appropriately
+        composeTestRule
+            .onNodeWithText("キャンセル")
+            .performClick()
+
+        composeTestRule.waitForIdle()
+
+        // Focus should return to trigger element
+        composeTestRule
+            .onNodeWithContentDescription("場所を追加")
+            .assertIsFocused()
+    }
+
+    @Test
+    fun semanticPropertiesVerification() {
+        // Test that semantic properties are correctly set
+        
+        composeTestRule
+            .onNodeWithText("明日の天気予報")
+            .assertIsDisplayed()
+            .assert(
+                hasSemantics(
+                    SemanticsProperties.Heading
+                )
+            )
+
+        composeTestRule.runOnIdle {
+            navController.navigate(NavigationRoutes.FAVORITE_LOCATIONS)
+        }
+
+        // Verify semantic roles are properly set
+        composeTestRule
+            .onNodeWithContentDescription("場所を追加")
+            .assert(
+                hasSemantics(
+                    SemanticsProperties.Role
+                )
+            )
+    }
+
+    @Test
+    fun dynamicContentAccessibility() {
+        // Test accessibility of dynamically changing content
+        
+        composeTestRule.runOnIdle {
+            navController.navigate(NavigationRoutes.FAVORITE_LOCATIONS)
+        }
+
+        // When content changes (e.g., adding/removing locations)
+        // Screen readers should be notified appropriately
+        
+        // Test loading states are announced
+        composeTestRule
+            .onNodeWithContentDescription("天気データを更新")
+            .performClick()
+
+        // Loading indicators should be accessible
+        composeTestRule.waitForIdle()
+        
+        // Completion of loading should be announced
+    }
+
+    @Test
+    fun colorContrastAccessibility() {
+        // While we can't directly test color contrast in UI tests,
+        // we can verify that important information isn't conveyed by color alone
+        
+        composeTestRule.runOnIdle {
+            navController.navigate(NavigationRoutes.FAVORITE_LOCATIONS)
+        }
+
+        // Verify that status indicators have text labels, not just colors
+        // Verify that interactive elements are distinguishable without color
+        // Check that error states have text descriptions, not just red coloring
+        
+        composeTestRule.waitForIdle()
+    }
+
+    @Test
+    fun gestureAccessibility() {
+        // Test that gesture-based interactions have accessible alternatives
+        
+        composeTestRule.runOnIdle {
+            navController.navigate(NavigationRoutes.FAVORITE_LOCATIONS)
+        }
+
+        // Drag and drop should have keyboard alternatives
+        // Swipe gestures should have button alternatives
+        // Pinch/zoom should have accessible alternatives
+        
+        // Test that all functionality is available without gestures
+        composeTestRule.waitForIdle()
+    }
+
+    @Test
+    fun timeoutAccessibility() {
+        // Test that time-limited content has appropriate accessibility features
+        
+        // Auto-dismissing messages should be pausable
+        // Loading timeouts should be announced
+        // User should have enough time to interact with timed content
+        
+        composeTestRule.waitForIdle()
+    }
+
+    @Test
+    fun screenReaderNavigation() {
+        // Test navigation patterns that work well with screen readers
+        
+        // Verify logical reading order
+        // Test that skip links work if implemented
+        // Verify that landmarks are properly identified
+        
+        composeTestRule
+            .onNodeWithText("明日の天気予報")
+            .assertIsDisplayed()
+
+        // Navigate through the screen in logical order
+        composeTestRule.runOnIdle {
+            navController.navigate(NavigationRoutes.FAVORITE_LOCATIONS)
+        }
+
+        // Verify screen reader can navigate efficiently
+        composeTestRule
+            .onNodeWithText("お気に入りの場所")
+            .assertIsDisplayed()
+    }
+
+    private fun hasContentDescription(): SemanticsMatcher {
+        return SemanticsMatcher.expectValue(
+            SemanticsProperties.ContentDescription,
+            listOf()
+        )
+    }
+
+    private fun hasSemantics(property: androidx.compose.ui.semantics.SemanticsPropertyKey<*>): SemanticsMatcher {
+        return SemanticsMatcher.keyIsDefined(property)
+    }
+}

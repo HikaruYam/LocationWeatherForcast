@@ -1,0 +1,481 @@
+package com.example.locationweatherforcast.performance
+
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.*
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.unit.dp
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.example.locationweatherforcast.data.model.FavoriteLocationWithWeather
+import com.example.locationweatherforcast.data.model.LocationData
+import com.example.locationweatherforcast.data.model.WeatherData
+import com.example.locationweatherforcast.ui.components.LocationCard
+import com.example.locationweatherforcast.ui.components.rememberDragDropState
+import com.example.locationweatherforcast.ui.components.dragContainer
+import com.example.locationweatherforcast.ui.components.draggedItem
+import com.example.locationweatherforcast.ui.theme.LocationWeatherForcastTheme
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import kotlin.system.measureTimeMillis
+
+/**
+ * Performance tests for UI components with large datasets
+ */
+@HiltAndroidTest
+@RunWith(AndroidJUnit4::class)
+class PerformanceTest {
+
+    @get:Rule(order = 0)
+    val hiltRule = HiltAndroidRule(this)
+
+    @get:Rule(order = 1)
+    val composeTestRule = createComposeRule()
+
+    @Before
+    fun setup() {
+        hiltRule.inject()
+    }
+
+    @Test
+    fun largeListScrollPerformance() {
+        val largeLocationList = generateLargeLocationList(100)
+
+        val compositionTime = measureTimeMillis {
+            composeTestRule.setContent {
+                LocationWeatherForcastTheme {
+                    LargeLocationListComponent(locations = largeLocationList)
+                }
+            }
+        }
+
+        // Composition should complete within reasonable time (2 seconds)
+        assert(compositionTime < 2000) { "Composition took too long: ${compositionTime}ms" }
+
+        composeTestRule.waitForIdle()
+
+        // Test scrolling performance
+        val scrollTime = measureTimeMillis {
+            composeTestRule
+                .onNodeWithTag("location_list")
+                .performScrollToIndex(50)
+        }
+
+        // Scrolling should be smooth (under 500ms for significant scroll)
+        assert(scrollTime < 500) { "Scrolling took too long: ${scrollTime}ms" }
+
+        // Test scroll to end
+        val scrollToEndTime = measureTimeMillis {
+            composeTestRule
+                .onNodeWithTag("location_list")
+                .performScrollToIndex(99)
+        }
+
+        assert(scrollToEndTime < 1000) { "Scroll to end took too long: ${scrollToEndTime}ms" }
+    }
+
+    @Test
+    fun lazyColumnPerformanceWithComplexItems() {
+        val complexLocationList = generateComplexLocationList(50)
+
+        val renderTime = measureTimeMillis {
+            composeTestRule.setContent {
+                LocationWeatherForcastTheme {
+                    ComplexLocationListComponent(locations = complexLocationList)
+                }
+            }
+        }
+
+        // Complex items should still render quickly
+        assert(renderTime < 3000) { "Complex list rendering took too long: ${renderTime}ms" }
+
+        composeTestRule.waitForIdle()
+
+        // Test that individual items are displayed correctly
+        composeTestRule
+            .onNodeWithText("Location 0")
+            .assertIsDisplayed()
+
+        // Test scrolling through complex items
+        repeat(10) { index ->
+            composeTestRule
+                .onNodeWithTag("location_list")
+                .performScrollToIndex(index * 5)
+            
+            composeTestRule.waitForIdle()
+        }
+    }
+
+    @Test
+    fun memoryUsageDuringLargeListOperations() {
+        val largeLocationList = generateLargeLocationList(200)
+        var currentList by mutableStateOf(largeLocationList)
+
+        composeTestRule.setContent {
+            LocationWeatherForcastTheme {
+                LargeLocationListComponent(
+                    locations = currentList,
+                    onReorder = { newList -> currentList = newList }
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+
+        // Test memory stability during operations
+        val runtime = Runtime.getRuntime()
+        val initialMemory = runtime.totalMemory() - runtime.freeMemory()
+
+        // Perform multiple operations that could cause memory issues
+        repeat(5) {
+            // Scroll through list
+            composeTestRule
+                .onNodeWithTag("location_list")
+                .performScrollToIndex(it * 20)
+            
+            composeTestRule.waitForIdle()
+            
+            // Trigger recomposition by updating list
+            currentList = currentList.shuffled()
+            composeTestRule.waitForIdle()
+        }
+
+        val finalMemory = runtime.totalMemory() - runtime.freeMemory()
+        val memoryIncrease = finalMemory - initialMemory
+
+        // Memory increase should be reasonable (less than 50MB)
+        val memoryIncreaseMB = memoryIncrease / (1024 * 1024)
+        assert(memoryIncreaseMB < 50) { "Memory usage increased too much: ${memoryIncreaseMB}MB" }
+    }
+
+    @Test
+    fun recompositionPerformanceWithLargeList() {
+        val baseList = generateLargeLocationList(100)
+        var locations by mutableStateOf(baseList)
+        var recompositionCount = 0
+
+        composeTestRule.setContent {
+            LocationWeatherForcastTheme {
+                // Track recompositions
+                LaunchedEffect(locations) {
+                    recompositionCount++
+                }
+                
+                LargeLocationListComponent(locations = locations)
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        val initialRecompositions = recompositionCount
+
+        // Modify a single item in the list
+        val modifiedTime = measureTimeMillis {
+            locations = locations.mapIndexed { index, location ->
+                if (index == 50) {
+                    location.copy(name = "Updated Location")
+                } else {
+                    location
+                }
+            }
+            composeTestRule.waitForIdle()
+        }
+
+        // Single item update should be fast
+        assert(modifiedTime < 500) { "Single item update took too long: ${modifiedTime}ms" }
+
+        // Should only cause minimal recompositions
+        val finalRecompositions = recompositionCount
+        val recompositionIncrease = finalRecompositions - initialRecompositions
+        assert(recompositionIncrease < 5) { "Too many recompositions: $recompositionIncrease" }
+    }
+
+    @Test
+    fun dragDropPerformanceWithLargeList() {
+        val largeList = generateLargeLocationList(50)
+        var locations by mutableStateOf(largeList)
+
+        composeTestRule.setContent {
+            LocationWeatherForcastTheme {
+                DragDropLargeListComponent(
+                    locations = locations,
+                    onReorder = { newList -> locations = newList }
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+
+        // Test drag operation initiation performance
+        val dragInitTime = measureTimeMillis {
+            composeTestRule
+                .onNodeWithText("Location 10")
+                .performTouchInput {
+                    longClick()
+                }
+            composeTestRule.waitForIdle()
+        }
+
+        // Drag initiation should be responsive
+        assert(dragInitTime < 200) { "Drag initiation took too long: ${dragInitTime}ms" }
+    }
+
+    @Test
+    fun searchAndFilterPerformanceWithLargeDataset() {
+        val largeList = generateLargeLocationList(500)
+        var filteredList by mutableStateOf(largeList)
+        var searchQuery by mutableStateOf("")
+
+        composeTestRule.setContent {
+            LocationWeatherForcastTheme {
+                // Simulate filtering
+                LaunchedEffect(searchQuery) {
+                    filteredList = if (searchQuery.isEmpty()) {
+                        largeList
+                    } else {
+                        largeList.filter { it.name.contains(searchQuery, ignoreCase = true) }
+                    }
+                }
+                
+                LargeLocationListComponent(locations = filteredList)
+            }
+        }
+
+        composeTestRule.waitForIdle()
+
+        // Test search performance
+        val searchTime = measureTimeMillis {
+            searchQuery = "Location 1"
+            composeTestRule.waitForIdle()
+        }
+
+        // Search should be fast even with large dataset
+        assert(searchTime < 300) { "Search took too long: ${searchTime}ms" }
+
+        // Verify filtered results are displayed
+        composeTestRule
+            .onNodeWithText("Location 1")
+            .assertIsDisplayed()
+
+        // Test clearing search
+        val clearTime = measureTimeMillis {
+            searchQuery = ""
+            composeTestRule.waitForIdle()
+        }
+
+        assert(clearTime < 500) { "Clear search took too long: ${clearTime}ms" }
+    }
+
+    @Test
+    fun rapidStateChangesPerformance() {
+        var locations by mutableStateOf(generateLargeLocationList(100))
+        
+        composeTestRule.setContent {
+            LocationWeatherForcastTheme {
+                LargeLocationListComponent(locations = locations)
+            }
+        }
+
+        composeTestRule.waitForIdle()
+
+        // Test rapid state changes
+        val rapidChangesTime = measureTimeMillis {
+            repeat(10) {
+                locations = locations.shuffled()
+                composeTestRule.waitForIdle()
+            }
+        }
+
+        // Rapid changes should be handled efficiently
+        assert(rapidChangesTime < 5000) { "Rapid state changes took too long: ${rapidChangesTime}ms" }
+    }
+
+    @Test
+    fun frameDropDetection() {
+        val largeList = generateLargeLocationList(200)
+
+        composeTestRule.setContent {
+            LocationWeatherForcastTheme {
+                LargeLocationListComponent(locations = largeList)
+            }
+        }
+
+        composeTestRule.waitForIdle()
+
+        // Perform scrolling and measure frame consistency
+        // This is a simplified test - in a real scenario, you'd use more sophisticated frame monitoring
+        val scrollOperations = 20
+        val totalScrollTime = measureTimeMillis {
+            repeat(scrollOperations) { index ->
+                composeTestRule
+                    .onNodeWithTag("location_list")
+                    .performScrollToIndex(index * 5)
+                composeTestRule.waitForIdle()
+            }
+        }
+
+        val averageTimePerScroll = totalScrollTime / scrollOperations
+        
+        // Each scroll operation should complete quickly to maintain 60fps
+        assert(averageTimePerScroll < 16) { "Average scroll time too high: ${averageTimePerScroll}ms (target: <16ms for 60fps)" }
+    }
+
+    private fun generateLargeLocationList(count: Int): List<FavoriteLocationWithWeather> {
+        return (0 until count).map { index ->
+            FavoriteLocationWithWeather(
+                id = "location_$index",
+                name = "Location $index",
+                latitude = 35.6762 + (index * 0.01),
+                longitude = 139.6503 + (index * 0.01),
+                order = index,
+                weatherData = WeatherData(
+                    date = "2024-01-01",
+                    weatherCode = index % 10,
+                    temperatureMax = 20.0 + (index % 15),
+                    temperatureMin = 10.0 + (index % 10),
+                    precipitation = (index % 5).toDouble(),
+                    location = LocationData(
+                        latitude = 35.6762 + (index * 0.01),
+                        longitude = 139.6503 + (index * 0.01),
+                        name = "Location $index"
+                    ),
+                    lastUpdated = "2024-01-01 12:00:00"
+                )
+            )
+        }
+    }
+
+    private fun generateComplexLocationList(count: Int): List<FavoriteLocationWithWeather> {
+        return generateLargeLocationList(count).map { location ->
+            // Add complexity with longer names and varied data
+            location.copy(
+                name = "Complex Location Name ${location.id} with Additional Information",
+                weatherData = location.weatherData?.copy(
+                    lastUpdated = "2024-01-01 ${12 + (location.order % 12)}:${(location.order % 60)}:00"
+                )
+            )
+        }
+    }
+}
+
+@Composable
+private fun LargeLocationListComponent(
+    locations: List<FavoriteLocationWithWeather>,
+    onReorder: (List<FavoriteLocationWithWeather>) -> Unit = {}
+) {
+    val listState = rememberLazyListState()
+
+    Scaffold(modifier = Modifier.fillMaxSize()) { paddingValues ->
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp)
+                .testTag("location_list")
+        ) {
+            itemsIndexed(
+                items = locations,
+                key = { _, location -> location.id }
+            ) { index, location ->
+                LocationCard(
+                    location = location,
+                    onDeleteClick = { },
+                    onCardClick = { },
+                    onRefreshClick = { },
+                    isDragEnabled = false,
+                    isLoading = false,
+                    modifier = Modifier.testTag("location_card_$index")
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ComplexLocationListComponent(
+    locations: List<FavoriteLocationWithWeather>
+) {
+    val listState = rememberLazyListState()
+
+    Scaffold(modifier = Modifier.fillMaxSize()) { paddingValues ->
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp)
+                .testTag("location_list")
+        ) {
+            itemsIndexed(
+                items = locations,
+                key = { _, location -> location.id }
+            ) { index, location ->
+                // More complex card with additional calculations
+                LocationCard(
+                    location = location,
+                    onDeleteClick = { },
+                    onCardClick = { },
+                    onRefreshClick = { },
+                    isDragEnabled = true,
+                    isLoading = index % 3 == 0, // Some items loading
+                    modifier = Modifier.testTag("complex_location_card_$index")
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DragDropLargeListComponent(
+    locations: List<FavoriteLocationWithWeather>,
+    onReorder: (List<FavoriteLocationWithWeather>) -> Unit
+) {
+    val listState = rememberLazyListState()
+    val dragDropState = rememberDragDropState(
+        lazyListState = listState,
+        onMove = { fromIndex, toIndex ->
+            val mutableList = locations.toMutableList()
+            if (fromIndex < mutableList.size && toIndex < mutableList.size) {
+                val item = mutableList.removeAt(fromIndex)
+                mutableList.add(toIndex, item)
+                onReorder(mutableList)
+            }
+        }
+    )
+
+    Scaffold(modifier = Modifier.fillMaxSize()) { paddingValues ->
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp)
+                .dragContainer(dragDropState)
+                .testTag("location_list")
+        ) {
+            itemsIndexed(
+                items = locations,
+                key = { _, location -> location.id }
+            ) { index, location ->
+                LocationCard(
+                    location = location,
+                    onDeleteClick = { },
+                    onCardClick = { },
+                    onRefreshClick = { },
+                    isDragEnabled = true,
+                    isLoading = false,
+                    modifier = Modifier.draggedItem(dragDropState, index)
+                )
+            }
+        }
+    }
+}

@@ -1,0 +1,194 @@
+package com.example.locationweatherforcast.navigation
+
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.test.*
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.navigation.compose.ComposeNavigator
+import androidx.navigation.testing.TestNavHostController
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.example.locationweatherforcast.MainActivity
+import com.example.locationweatherforcast.ui.theme.LocationWeatherForcastTheme
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+/**
+ * UI Tests for navigation flow between screens
+ */
+@HiltAndroidTest
+@RunWith(AndroidJUnit4::class)
+class NavigationFlowTest {
+
+    @get:Rule(order = 0)
+    val hiltRule = HiltAndroidRule(this)
+
+    @get:Rule(order = 1)
+    val composeTestRule = createComposeRule()
+
+    private lateinit var navController: TestNavHostController
+
+    @Before
+    fun setupNavHost() {
+        hiltRule.inject()
+
+        composeTestRule.setContent {
+            navController = TestNavHostController(LocalContext.current)
+            navController.navigatorProvider.addNavigator(ComposeNavigator())
+            
+            LocationWeatherForcastTheme {
+                AppNavigation(navController = navController)
+            }
+        }
+    }
+
+    @Test
+    fun navigationStartsAtWeatherScreen() {
+        // Verify that the app starts on the weather screen
+        composeTestRule
+            .onNodeWithText("明日の天気予報")
+            .assertIsDisplayed()
+        
+        // Verify current route
+        assert(navController.currentBackStackEntry?.destination?.route == NavigationRoutes.CURRENT_WEATHER)
+    }
+
+    @Test
+    fun navigateFromWeatherToFavoritesAndBack() {
+        // Start on weather screen and verify bottom navigation is displayed
+        composeTestRule.waitForIdle()
+        
+        // Navigate to favorites (this would typically be through a bottom navigation bar)
+        // Since we're testing navigation directly, we'll use the navController
+        composeTestRule.runOnIdle {
+            navController.navigate(NavigationRoutes.FAVORITE_LOCATIONS)
+        }
+        
+        // Verify we're on the favorites screen
+        composeTestRule
+            .onNodeWithText("お気に入りの場所")
+            .assertIsDisplayed()
+        
+        // Verify current route
+        assert(navController.currentBackStackEntry?.destination?.route == NavigationRoutes.FAVORITE_LOCATIONS)
+        
+        // Navigate back to weather screen
+        composeTestRule.runOnIdle {
+            navController.navigate(NavigationRoutes.CURRENT_WEATHER)
+        }
+        
+        // Verify we're back on the weather screen
+        composeTestRule
+            .onNodeWithText("明日の天気予報")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun navigateToLocationDetailFromFavorites() {
+        // Navigate to favorites screen
+        composeTestRule.runOnIdle {
+            navController.navigate(NavigationRoutes.FAVORITE_LOCATIONS)
+        }
+        
+        composeTestRule.waitForIdle()
+        
+        // Navigate to a location detail (simulating a location click)
+        val testLocationId = "test-location-123"
+        composeTestRule.runOnIdle {
+            navController.navigate(NavigationRoutes.locationDetail(testLocationId))
+        }
+        
+        // Verify we're on the location detail screen
+        // The screen should show location-specific content
+        composeTestRule
+            .onNodeWithText("場所の詳細")
+            .assertIsDisplayed()
+        
+        // Verify current route contains the location ID
+        assert(navController.currentBackStackEntry?.destination?.route == NavigationRoutes.LOCATION_DETAIL)
+        assert(navController.currentBackStackEntry?.arguments?.getString("locationId") == testLocationId)
+    }
+
+    @Test
+    fun navigateBackFromLocationDetail() {
+        // Navigate to favorites, then to location detail
+        composeTestRule.runOnIdle {
+            navController.navigate(NavigationRoutes.FAVORITE_LOCATIONS)
+        }
+        
+        val testLocationId = "test-location-456"
+        composeTestRule.runOnIdle {
+            navController.navigate(NavigationRoutes.locationDetail(testLocationId))
+        }
+        
+        composeTestRule.waitForIdle()
+        
+        // Navigate back using system back (simulated)
+        composeTestRule.runOnIdle {
+            navController.popBackStack()
+        }
+        
+        // Verify we're back on the favorites screen
+        composeTestRule
+            .onNodeWithText("お気に入りの場所")
+            .assertIsDisplayed()
+        
+        // Verify current route
+        assert(navController.currentBackStackEntry?.destination?.route == NavigationRoutes.FAVORITE_LOCATIONS)
+    }
+
+    @Test
+    fun navigationHandlesInvalidLocationId() {
+        // Navigate directly to location detail with empty/invalid ID
+        composeTestRule.runOnIdle {
+            navController.navigate(NavigationRoutes.locationDetail(""))
+        }
+        
+        composeTestRule.waitForIdle()
+        
+        // The screen should handle invalid IDs gracefully
+        // This test ensures no crashes occur with invalid navigation parameters
+        composeTestRule
+            .onNodeWithText("場所の詳細")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun backStackMaintainsCorrectOrder() {
+        // Start at weather screen
+        assert(navController.currentBackStackEntry?.destination?.route == NavigationRoutes.CURRENT_WEATHER)
+        
+        // Navigate to favorites
+        composeTestRule.runOnIdle {
+            navController.navigate(NavigationRoutes.FAVORITE_LOCATIONS)
+        }
+        
+        // Navigate to location detail
+        composeTestRule.runOnIdle {
+            navController.navigate(NavigationRoutes.locationDetail("test-123"))
+        }
+        
+        composeTestRule.waitForIdle()
+        
+        // Verify we're at location detail
+        assert(navController.currentBackStackEntry?.destination?.route == NavigationRoutes.LOCATION_DETAIL)
+        
+        // Pop back to favorites
+        composeTestRule.runOnIdle {
+            navController.popBackStack()
+        }
+        
+        // Should be back at favorites
+        assert(navController.currentBackStackEntry?.destination?.route == NavigationRoutes.FAVORITE_LOCATIONS)
+        
+        // Pop back to weather
+        composeTestRule.runOnIdle {
+            navController.popBackStack()
+        }
+        
+        // Should be back at weather screen
+        assert(navController.currentBackStackEntry?.destination?.route == NavigationRoutes.CURRENT_WEATHER)
+    }
+}
